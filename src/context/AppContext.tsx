@@ -1,8 +1,14 @@
+/* ----------------------------------------------------------------
+   src/context/AppContext.tsx
+   ---------------------------------------------------------------- */
+import { shouldRotate } from '../utils/rotation';
+
 import React, {
   createContext,
   useContext,
   useEffect,
   useState,
+  useRef,
   ReactNode,
 } from 'react';
 import { supabase } from '../supabaseClient';
@@ -103,51 +109,47 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [calendarSettings, setCalendarSettings] =
     useState<CalendarSettings>(defaultCalendarSettings);
 
+  /* live ref so the ticker can always read the latest chores array */
+  const choresRef = useRef<Chore[]>([]);
+  useEffect(() => {
+    choresRef.current = chores;
+  }, [chores]);
+
   /* ---------------- settings fetch ---------------- */
   useEffect(() => {
     async function fetchSettings() {
-      try {
-        const { data, error } = await supabase
-          .from('user_settings')
-          .select('*')
-          .eq('id', SETTINGS_ROW_ID)
-          .single();
+      const { data, error } = await supabase
+        .from('user_settings')
+        .select('*')
+        .eq('id', SETTINGS_ROW_ID)
+        .single();
 
-        /* insert default row if none exists */
-        if (error?.code === 'PGRST116') {
-          const { error: insertErr } = await supabase.from('user_settings').insert([
-            {
-              id: SETTINGS_ROW_ID,
-              weather_location: defaultSettings.weatherLocation,
-              weather_api_key: defaultSettings.weatherApiKey,
-              show_weather: defaultSettings.showWeather,
-              weather_last_updated: defaultSettings.weatherLastUpdated,
-            },
-          ]);
-          if (insertErr) console.error('Error inserting default settings:', insertErr.message);
-          return;
-        }
-
-        if (error) {
-          console.error('Settings fetch failed:', error.message);
-          return;
-        }
-
-        if (data) {
-          console.log('✅ Settings loaded:', data);
-          setSettings((prev) => ({
-            ...prev,
-            weatherLocation: data.weather_location || prev.weatherLocation,
-            weatherApiKey: data.weather_api_key || prev.weatherApiKey,
-            showWeather: data.show_weather ?? prev.showWeather,
-            weatherLastUpdated: data.weather_last_updated || prev.weatherLastUpdated,
-          }));
-        }
-      } catch (err) {
-        console.error('Unexpected settings error:', err);
+      if (error?.code === 'PGRST116') {
+        await supabase.from('user_settings').insert([
+          {
+            id: SETTINGS_ROW_ID,
+            weather_location: defaultSettings.weatherLocation,
+            weather_api_key: defaultSettings.weatherApiKey,
+            show_weather: defaultSettings.showWeather,
+            weather_last_updated: defaultSettings.weatherLastUpdated,
+          },
+        ]);
+        return;
+      }
+      if (error) {
+        console.error('Settings fetch failed:', error.message);
+        return;
+      }
+      if (data) {
+        setSettings((prev) => ({
+          ...prev,
+          weatherLocation: data.weather_location || prev.weatherLocation,
+          weatherApiKey: data.weather_api_key || prev.weatherApiKey,
+          showWeather: data.show_weather ?? prev.showWeather,
+          weatherLastUpdated: data.weather_last_updated || prev.weatherLastUpdated,
+        }));
       }
     }
-
     fetchSettings();
   }, []);
 
@@ -282,22 +284,28 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const updated = { ...chore.completed, [memberId]: !chore.completed[memberId] };
     await updateChore(choreId, { completed: updated });
   }
+
+  /* rotate one chore forward */
+  function rotateOne(chore: Chore) {
+    const newOrder = [...chore.assignedTo.slice(1), chore.assignedTo[0]];
+    const newCompleted: Record<string, boolean> = {};
+    newOrder.forEach((id) => (newCompleted[id] = false));
+    updateChore(chore.id, {
+      assignedTo: newOrder,
+      completed: newCompleted,
+      lastRotated: new Date().toISOString(),
+    });
+  }
+
+  /* manual rotate button still supported */
   async function rotateChores() {
-    const rotations = chores.filter((c) => c.isRotating && c.assignedTo.length > 1);
-    for (const chore of rotations) {
-      const newOrder = [...chore.assignedTo.slice(1), chore.assignedTo[0]];
-      const newCompleted: Record<string, boolean> = {};
-      newOrder.forEach((id) => (newCompleted[id] = false));
-      await updateChore(chore.id, {
-        assignedTo: newOrder,
-        completed: newCompleted,
-        lastRotated: new Date().toISOString(),
-      });
-    }
+    chores.forEach((c) => {
+      if (c.isRotating && c.assignedTo.length > 1) rotateOne(c);
+    });
   }
 
   /* ------------------------------------------------------------------------
-     CALENDAR EVENTS
+     CALENDAR EVENTS (unchanged)
   ------------------------------------------------------------------------ */
   const calMap = (e: any): CalendarEvent => ({
     id: e.id,
@@ -367,7 +375,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }
 
   /* ------------------------------------------------------------------------
-     LISTS
+     LISTS (unchanged)
   ------------------------------------------------------------------------ */
   const listMap = (l: any): List => ({
     id: l.id,
@@ -397,7 +405,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }
 
   /* ------------------------------------------------------------------------
-     MEAL PLANS
+     MEAL PLANS (unchanged)
   ------------------------------------------------------------------------ */
   const mealMap = (p: any): MealPlan => ({
     id: p.id,
@@ -446,7 +454,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const updateSettings = (s: Partial<AppSettings>) => {
     setSettings((prev) => {
       const updated = { ...prev, ...s };
-
       supabase
         .from('user_settings')
         .update({
@@ -455,25 +462,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
           show_weather: updated.showWeather,
           weather_last_updated: updated.weatherLastUpdated,
         })
-        .eq('id', SETTINGS_ROW_ID)
-        .then(({ error }) => {
-          if (error) console.error('Failed to update settings:', error.message);
-        });
-
+        .eq('id', SETTINGS_ROW_ID);
       return updated;
     });
   };
 
   /* ------------------------------------------------------------------------
-     INITIAL FETCH + REALTIME SUBSCRIPTIONS
+     INITIAL FETCH + REALTIME + TICKER
   ------------------------------------------------------------------------ */
   useEffect(() => {
+    /* first load */
     fetchFamilyMembers();
     fetchChores();
     fetchLists();
     fetchMealPlans();
     fetchCalendarEvents();
 
+    /* realtime table listeners */
     const tables = [
       { key: 'family_members', map: famMap, setter: setFamilyMembers },
       { key: 'chores', map: choreMap, setter: setChores },
@@ -485,22 +490,34 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const subs = tables.map(({ key, map, setter }) =>
       supabase
         .channel(`${key}-realtime`)
-        .on('postgres_changes', { event: '*', schema: 'public', table: key }, (payload) => {
-          if (payload.eventType === 'DELETE') {
-            const deletedId = payload.old?.id;
-            if (deletedId) setter((prev) => remove(prev, deletedId));
-          } else {
-            const row = map(payload.new);
-            setter((prev) => upsert(prev, row));
-          }
-        })
-        .subscribe()
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: key },
+          (payload) => {
+            if (payload.eventType === 'DELETE') {
+              const id = payload.old?.id;
+              if (id) setter((prev) => remove(prev, id));
+            } else {
+              const row = map(payload.new);
+              setter((prev) => upsert(prev, row));
+            }
+          },
+        )
+        .subscribe(),
     );
+
+    /* hourly rotation check */
+    const tick = setInterval(() => {
+      choresRef.current.forEach((c) => {
+        if (shouldRotate(c)) rotateOne(c);
+      });
+    }, 60 * 60 * 1000);
 
     return () => {
       subs.forEach((ch) => supabase.removeChannel(ch));
+      clearInterval(tick);
     };
-  }, []);
+  }, []); // <- run once
 
   /* ------------------------------------------------------------------------
      CONTEXT VALUE
