@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
+} from 'react';
 import { supabase } from '../supabaseClient';
 import {
   FamilyMember,
@@ -10,9 +16,9 @@ import {
   CalendarSettings,
 } from '../types';
 
-/* --------------------------------------------------------------------------
-   Local-only UI-settings defaults (move to Supabase later if you wish)
---------------------------------------------------------------------------- */
+/* -------------------------------------------------------------------------- */
+/*  Defaults                                                                   */
+/* -------------------------------------------------------------------------- */
 const defaultSettings: AppSettings = {
   theme: 'light',
   sleepMode: false,
@@ -38,9 +44,9 @@ const defaultCalendarSettings: CalendarSettings = {
   googleCalendarIds: [],
 };
 
-/* --------------------------------------------------------------------------
-   Context interface
---------------------------------------------------------------------------- */
+/* -------------------------------------------------------------------------- */
+/*  Context types                                                              */
+/* -------------------------------------------------------------------------- */
 interface AppContextType {
   familyMembers: FamilyMember[];
   chores: Chore[];
@@ -78,10 +84,16 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-/* --------------------------------------------------------------------------
-   Provider
---------------------------------------------------------------------------- */
+/* -------------------------------------------------------------------------- */
+/*  Constants                                                                  */
+/* -------------------------------------------------------------------------- */
+const SETTINGS_ROW_ID = '2c10355d-a1ad-4cf5-8520-963724450a11';
+
+/* -------------------------------------------------------------------------- */
+/*  Provider                                                                   */
+/* -------------------------------------------------------------------------- */
 export function AppProvider({ children }: { children: ReactNode }) {
+  /* ---------------- state ---------------- */
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
   const [chores, setChores] = useState<Chore[]>([]);
   const [lists, setLists] = useState<List[]>([]);
@@ -91,7 +103,55 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [calendarSettings, setCalendarSettings] =
     useState<CalendarSettings>(defaultCalendarSettings);
 
-  /* -------- helpers for realtime arrays -------- */
+  /* ---------------- settings fetch ---------------- */
+  useEffect(() => {
+    async function fetchSettings() {
+      try {
+        const { data, error } = await supabase
+          .from('user_settings')
+          .select('*')
+          .eq('id', SETTINGS_ROW_ID)
+          .single();
+
+        /* insert default row if none exists */
+        if (error?.code === 'PGRST116') {
+          const { error: insertErr } = await supabase.from('user_settings').insert([
+            {
+              id: SETTINGS_ROW_ID,
+              weather_location: defaultSettings.weatherLocation,
+              weather_api_key: defaultSettings.weatherApiKey,
+              show_weather: defaultSettings.showWeather,
+              weather_last_updated: defaultSettings.weatherLastUpdated,
+            },
+          ]);
+          if (insertErr) console.error('Error inserting default settings:', insertErr.message);
+          return;
+        }
+
+        if (error) {
+          console.error('Settings fetch failed:', error.message);
+          return;
+        }
+
+        if (data) {
+          console.log('✅ Settings loaded:', data);
+          setSettings((prev) => ({
+            ...prev,
+            weatherLocation: data.weather_location || prev.weatherLocation,
+            weatherApiKey: data.weather_api_key || prev.weatherApiKey,
+            showWeather: data.show_weather ?? prev.showWeather,
+            weatherLastUpdated: data.weather_last_updated || prev.weatherLastUpdated,
+          }));
+        }
+      } catch (err) {
+        console.error('Unexpected settings error:', err);
+      }
+    }
+
+    fetchSettings();
+  }, []);
+
+  /* ---------------- helpers ---------------- */
   const upsert = <T extends { id: string }>(rows: T[], incoming: T): T[] => {
     const i = rows.findIndex((r) => r.id === incoming.id);
     return i === -1 ? [...rows, incoming] : rows.map((r) => (r.id === incoming.id ? incoming : r));
@@ -146,7 +206,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const choreMap = (c: any): Chore => ({
     id: c.id,
     title: c.title,
-    description: c.notes, // fixed mapping
+    description: c.notes,
     assignedTo: c.assigned_to,
     frequency: c.frequency,
     dueDate: c.due_date,
@@ -171,7 +231,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   async function addChore(chore: Omit<Chore, 'id'>) {
     const completed: Record<string, boolean> = {};
     chore.assignedTo.forEach((id) => (completed[id] = false));
-
     const { error } = await supabase.from('chores').insert([
       {
         title: chore.title,
@@ -220,13 +279,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   async function toggleChoreCompletion(choreId: string, memberId: string) {
     const chore = chores.find((c) => c.id === choreId);
     if (!chore) return;
-    const updated = {
-      ...chore.completed,
-      [memberId]: !chore.completed[memberId],
-    };
+    const updated = { ...chore.completed, [memberId]: !chore.completed[memberId] };
     await updateChore(choreId, { completed: updated });
   }
-
   async function rotateChores() {
     const rotations = chores.filter((c) => c.isRotating && c.assignedTo.length > 1);
     for (const chore of rotations) {
@@ -386,14 +441,31 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }
 
   /* ------------------------------------------------------------------------
-     Local-only UI settings
+     UI SETTINGS
   ------------------------------------------------------------------------ */
-  const updateSettings = (s: Partial<AppSettings>) => setSettings((prev) => ({ ...prev, ...s }));
-  const updateCalendarSettings = (s: Partial<CalendarSettings>) =>
-    setCalendarSettings((prev) => ({ ...prev, ...s }));
+  const updateSettings = (s: Partial<AppSettings>) => {
+    setSettings((prev) => {
+      const updated = { ...prev, ...s };
+
+      supabase
+        .from('user_settings')
+        .update({
+          weather_location: updated.weatherLocation,
+          weather_api_key: updated.weatherApiKey,
+          show_weather: updated.showWeather,
+          weather_last_updated: updated.weatherLastUpdated,
+        })
+        .eq('id', SETTINGS_ROW_ID)
+        .then(({ error }) => {
+          if (error) console.error('Failed to update settings:', error.message);
+        });
+
+      return updated;
+    });
+  };
 
   /* ------------------------------------------------------------------------
-     Initial fetch + realtime subscriptions
+     INITIAL FETCH + REALTIME SUBSCRIPTIONS
   ------------------------------------------------------------------------ */
   useEffect(() => {
     fetchFamilyMembers();
@@ -411,21 +483,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
     ];
 
     const subs = tables.map(({ key, map, setter }) =>
-  supabase
-    .channel(`${key}-realtime`)
-    .on('postgres_changes', { event: '*', schema: 'public', table: key }, (payload) => {
-      if (payload.eventType === 'DELETE') {
-        const deletedId = payload.old?.id;
-        if (deletedId) {
-          setter((prev) => remove(prev, deletedId));
-        }
-      } else {
-        const row = map(payload.new);
-        setter((prev) => upsert(prev, row));
-      }
-    })
-    .subscribe()
-);
+      supabase
+        .channel(`${key}-realtime`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: key }, (payload) => {
+          if (payload.eventType === 'DELETE') {
+            const deletedId = payload.old?.id;
+            if (deletedId) setter((prev) => remove(prev, deletedId));
+          } else {
+            const row = map(payload.new);
+            setter((prev) => upsert(prev, row));
+          }
+        })
+        .subscribe()
+    );
 
     return () => {
       subs.forEach((ch) => supabase.removeChannel(ch));
@@ -433,7 +503,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   /* ------------------------------------------------------------------------
-     Context value
+     CONTEXT VALUE
   ------------------------------------------------------------------------ */
   const value: AppContextType = {
     familyMembers,
@@ -461,15 +531,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     updateMealPlan,
     removeMealPlan,
     updateSettings,
-    updateCalendarSettings,
+    updateCalendarSettings: (s) =>
+      setCalendarSettings((prev) => ({ ...prev, ...s })),
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }
 
-/* --------------------------------------------------------------------------
-   Hook
---------------------------------------------------------------------------- */
+/* -------------------------------------------------------------------------- */
+/*  Hook                                                                       */
+/* -------------------------------------------------------------------------- */
 export function useAppContext() {
   const ctx = useContext(AppContext);
   if (!ctx) throw new Error('useAppContext must be used within an AppProvider');
