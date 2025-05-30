@@ -1,10 +1,12 @@
-export interface FamilyMember {
-  id: string;
-  name: string;
-  color: string;
-  initial: string;
-  profilePicture?: string;
-}
+ export interface FamilyMember {
+   id: string;
+   name: string;
++  initials?: string;   // <-- NEW
+   color?: string;
+   email?: string;
+   avatar_url?: string;
+ }
+
 
 export interface Chore {
   id: string;
