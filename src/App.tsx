@@ -21,11 +21,12 @@ import Dashboard from './pages/Dashboard';
 import FamilyMembers from './pages/FamilyMembers';
 import Chores from './pages/Chores';
 import AppSettings from './pages/Settings';
-
-// Import Calendar page
 import CalendarPage from './pages/Calendar';
-const ListsPage = () => <div className="p-8">Lists Page (Coming Soon)</div>;
-const MealsPage = () => <div className="p-8">Meals Page (Coming Soon)</div>;
+import ListsPage from './pages/ListsPage'; // <-- MODIFIED: Import the new page
+
+// Remove or comment out old placeholders if they exist elsewhere
+// const ListsPage = () => <div className="p-8">Lists Page (Coming Soon)</div>; // <-- DELETED
+const MealsPage = () => <div className="p-8">Meals Page (Coming Soon)</div>; // This one remains for now
 
 export default function App() {
   useEffect(() => {
@@ -34,7 +35,7 @@ export default function App() {
       if (error) {
         console.error('Supabase error:', error.message);
       } else {
-        console.log('Family data:', data);
+        // console.log('Family data:', data); // Optional: Keep for debugging if needed
       }
     }
     fetchFamily();
@@ -54,19 +55,19 @@ export default function App() {
 
     const timer = setInterval(() => {
       setCurrentTime(new Date());
-    }, 1000);
+    }, 1000); // Updates every second, consider 60000 for every minute if seconds not needed
 
     return () => {
       clearInterval(timer);
+      // Clean up appended link if component unmounts, though App typically doesn't
+      // document.head.removeChild(link);
     };
   }, []);
 
-  // Close mobile menu when route changes
   useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [location.pathname]);
 
-  // Determine if we should dim the screen (sleep mode)
   const isDimmed = () => {
     if (!settings.sleepMode) return false;
 
@@ -81,8 +82,7 @@ export default function App() {
     const sleepStartValue = sleepStartHour * 60 + sleepStartMinute;
     const sleepEndValue = sleepEndHour * 60 + sleepEndMinute;
 
-    // Handle overnight sleep periods
-    if (sleepStartValue > sleepEndValue) {
+    if (sleepStartValue > sleepEndValue) { // Handles overnight sleep periods
       return currentTimeValue >= sleepStartValue || currentTimeValue < sleepEndValue;
     } else {
       return currentTimeValue >= sleepStartValue && currentTimeValue < sleepEndValue;
@@ -95,7 +95,7 @@ export default function App() {
       style={{ fontFamily: 'Inter, sans-serif' }}
     >
       <div
-        className={`flex h-full transition-opacity ${isDimmed() ? 'opacity-30' : 'opacity-100'}`}
+        className={`flex h-full transition-opacity duration-500 ${isDimmed() ? 'opacity-30 pointer-events-none' : 'opacity-100'}`}
       >
         {/* Sidebar - Desktop */}
         <nav className="hidden md:flex flex-col w-72 h-full dark:bg-slate-900 bg-white border-r border-gray-50 dark:border-slate-800 shadow-sm">
@@ -193,7 +193,7 @@ export default function App() {
                 <Route path="/family" element={<FamilyMembers />} />
                 <Route path="/chores" element={<Chores />} />
                 <Route path="/calendar" element={<CalendarPage />} />
-                <Route path="/lists" element={<ListsPage />} />
+                <Route path="/lists" element={<ListsPage />} /> {/* This now uses the real component */}
                 <Route path="/meals" element={<MealsPage />} />
                 <Route path="/settings" element={<AppSettings />} />
               </Routes>
