@@ -4,24 +4,25 @@ import ChoreForm from '../components/ChoreForm';
 import { Pencil, Plus, RotateCcw, Trash2 } from 'lucide-react';
 
 export default function Chores() {
-  const { familyMembers, chores, addChore, updateChore, removeChore, rotateChores, settings } = useAppContext();
+  const { familyMembers, chores, addChore, updateChore, removeChore, rotateChores, settings } =
+    useAppContext();
   const [isAddingChore, setIsAddingChore] = useState(false);
   const [editingChore, setEditingChore] = useState<string | null>(null);
-  
+
   const handleRemoveChore = (id: string) => {
     if (confirm('Are you sure you want to remove this chore?')) {
       removeChore(id);
     }
   };
-  
+
   // Get assigned members for a chore
   const getAssignedMembers = (choreId: string) => {
-    const chore = chores.find(c => c.id === choreId);
+    const chore = chores.find((c) => c.id === choreId);
     if (!chore) return [];
-    
-    return familyMembers.filter(member => chore.assignedTo.includes(member.id));
+
+    return familyMembers.filter((member) => chore.assignedTo.includes(member.id));
   };
-  
+
   // Format frequency for display
   const formatFrequency = (chore: any) => {
     switch (chore.frequency) {
@@ -30,13 +31,13 @@ export default function Chores() {
       case 'weekly':
         if (!chore.daysOfWeek || chore.daysOfWeek.length === 0) return 'Weekly';
         if (chore.daysOfWeek.length === 7) return 'Every day';
-        
+
         const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         const selectedDays = chore.daysOfWeek.map((day: number) => days[day]);
-        
+
         if (selectedDays.length <= 2) return selectedDays.join(' & ');
         return selectedDays.join(', ');
-        
+
       case 'monthly':
         return `Monthly (Day ${chore.dayOfMonth})`;
       case 'once':
@@ -45,14 +46,17 @@ export default function Chores() {
         return 'Unknown';
     }
   };
-  
+
   return (
     <div className="p-6 md:p-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent" style={{ fontFamily: 'Poppins, sans-serif' }}>
+        <h1
+          className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent"
+          style={{ fontFamily: 'Poppins, sans-serif' }}
+        >
           Chores
         </h1>
-        
+
         <div className="flex space-x-2 mt-2 md:mt-0">
           <button
             onClick={rotateChores}
@@ -61,7 +65,7 @@ export default function Chores() {
             <RotateCcw size={18} />
             <span>Rotate</span>
           </button>
-          
+
           <button
             onClick={() => setIsAddingChore(true)}
             className="flex items-center space-x-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
@@ -72,7 +76,7 @@ export default function Chores() {
           </button>
         </div>
       </div>
-      
+
       {isAddingChore && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
           <ChoreForm
@@ -85,11 +89,11 @@ export default function Chores() {
           />
         </div>
       )}
-      
+
       {editingChore && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
           <ChoreForm
-            chore={chores.find(c => c.id === editingChore)}
+            chore={chores.find((c) => c.id === editingChore)}
             familyMembers={familyMembers}
             onSubmit={(chore) => {
               updateChore(editingChore, chore);
@@ -99,10 +103,12 @@ export default function Chores() {
           />
         </div>
       )}
-      
+
       {familyMembers.length === 0 ? (
         <div className="bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 text-center">
-          <p className="text-yellow-700 dark:text-yellow-300 mb-2">You need to add family members first</p>
+          <p className="text-yellow-700 dark:text-yellow-300 mb-2">
+            You need to add family members first
+          </p>
           <p className="text-sm text-yellow-600 dark:text-yellow-400">
             Go to the Family Members page to add people to your family.
           </p>
@@ -142,12 +148,10 @@ export default function Chores() {
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                {chores.map(chore => (
+                {chores.map((chore) => (
                   <tr key={chore.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="font-medium text-gray-900 dark:text-white">
-                        {chore.title}
-                      </div>
+                      <div className="font-medium text-gray-900 dark:text-white">{chore.title}</div>
                       {chore.timeOfDay && (
                         <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                           {chore.timeOfDay.charAt(0).toUpperCase() + chore.timeOfDay.slice(1)}
@@ -159,10 +163,12 @@ export default function Chores() {
                         {getAssignedMembers(chore.id).map((member, index) => {
                           const isCurrentlyAssigned = chore.isRotating && index === 0;
                           return (
-                            <div 
+                            <div
                               key={member.id}
                               className={`w-6 h-6 rounded-full flex items-center justify-center text-white text-xs ${
-                                isCurrentlyAssigned ? 'ring-2 ring-green-500 ring-offset-1 dark:ring-offset-gray-800' : ''
+                                isCurrentlyAssigned
+                                  ? 'ring-2 ring-green-500 ring-offset-1 dark:ring-offset-gray-800'
+                                  : ''
                               }`}
                               style={{ backgroundColor: member.color }}
                               title={`${member.name}${isCurrentlyAssigned ? ' (Currently Assigned)' : ''}`}
@@ -197,12 +203,15 @@ export default function Chores() {
                           <div className="mt-1 flex items-center">
                             <span className="inline-flex items-center text-xs text-green-600 dark:text-green-400">
                               <span className="h-1.5 w-1.5 rounded-full bg-green-500 mr-1 animate-pulse"></span>
-                              {chore.rotationFrequency ? 
-                                chore.rotationFrequency === 'daily' ? 'Daily' : 
-                                chore.rotationFrequency === 'weekly' ? `Weekly (${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][chore.rotationDay || 0]})` : 
-                                `Monthly (Day ${chore.rotationDay})` : 
-                                settings.autoRotateChores ? 'Auto' : 'Manual'
-                              }
+                              {chore.rotationFrequency
+                                ? chore.rotationFrequency === 'daily'
+                                  ? 'Daily'
+                                  : chore.rotationFrequency === 'weekly'
+                                    ? `Weekly (${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][chore.rotationDay || 0]})`
+                                    : `Monthly (Day ${chore.rotationDay})`
+                                : settings.autoRotateChores
+                                  ? 'Auto'
+                                  : 'Manual'}
                             </span>
                           </div>
                         </div>

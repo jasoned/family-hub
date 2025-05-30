@@ -1,4 +1,9 @@
-# typical gitignore for web apps
-node_modules
-dist
+# Dependency directories
+node_modules/
+# Build output
+dist/
+build/
+# OS artifacts
 .DS_Store
+# Environment files
+.env*

@@ -3,20 +3,20 @@ import { Chore, FamilyMember } from '../types';
 import { ArrowDown, GripVertical, X } from 'lucide-react';
 import { motion } from 'framer-motion';
 import {
-  DndContext, 
+  DndContext,
   closestCenter,
   KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
-  DragEndEvent
+  DragEndEvent,
 } from '@dnd-kit/core';
 import {
   arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   useSortable,
-  verticalListSortingStrategy
+  verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
@@ -33,20 +33,20 @@ export default function ChoreForm({ chore, familyMembers, onSubmit, onCancel }: 
   const [assignedTo, setAssignedTo] = useState<string[]>(chore?.assignedTo || []);
   const [isRotating, setIsRotating] = useState(chore?.isRotating || false);
   const [frequency, setFrequency] = useState<'daily' | 'weekly' | 'monthly' | 'once'>(
-    chore?.frequency || 'daily'
+    chore?.frequency || 'daily',
   );
-  const [rotationFrequency, setRotationFrequency] = useState<'daily' | 'weekly' | 'monthly' | undefined>(
-    chore?.rotationFrequency || undefined
-  );
+  const [rotationFrequency, setRotationFrequency] = useState<
+    'daily' | 'weekly' | 'monthly' | undefined
+  >(chore?.rotationFrequency || undefined);
   const [rotationDay, setRotationDay] = useState<number | undefined>(
-    chore?.rotationDay || undefined
+    chore?.rotationDay || undefined,
   );
   const [timeOfDay, setTimeOfDay] = useState<'morning' | 'afternoon' | 'evening' | undefined>(
-    chore?.timeOfDay
+    chore?.timeOfDay,
   );
   const [daysOfWeek, setDaysOfWeek] = useState<number[]>(chore?.daysOfWeek || []);
   const [dayOfMonth, setDayOfMonth] = useState<number | undefined>(chore?.dayOfMonth);
-  
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -55,7 +55,7 @@ export default function ChoreForm({ chore, familyMembers, onSubmit, onCancel }: 
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
-    })
+    }),
   );
 
   const handleAssigneeToggle = (memberId: string) => {
@@ -75,17 +75,17 @@ export default function ChoreForm({ chore, familyMembers, onSubmit, onCancel }: 
   };
 
   const getFamilyMember = (id: string) => {
-    return familyMembers.find(member => member.id === id);
+    return familyMembers.find((member) => member.id === id);
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    
+
     if (over && active.id !== over.id) {
       setAssignedTo((items) => {
         const oldIndex = items.indexOf(active.id.toString());
         const newIndex = items.indexOf(over.id.toString());
-        
+
         return arrayMove(items, oldIndex, newIndex);
       });
     }
@@ -98,7 +98,7 @@ export default function ChoreForm({ chore, familyMembers, onSubmit, onCancel }: 
     // Validate frequency-specific fields
     if (frequency === 'weekly' && daysOfWeek.length === 0) return;
     if (frequency === 'monthly' && !dayOfMonth) return;
-    
+
     // Validate rotation frequency-specific fields
     if (isRotating && rotationFrequency === 'weekly' && rotationDay === undefined) {
       setRotationDay(0); // Default to Sunday
@@ -122,27 +122,33 @@ export default function ChoreForm({ chore, familyMembers, onSubmit, onCancel }: 
   };
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.95 }}
       className="p-6 bg-white dark:bg-slate-900 rounded-2xl shadow-md max-w-md mx-auto border border-gray-50 dark:border-slate-800"
     >
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent" style={{ fontFamily: 'Poppins, sans-serif' }}>
+        <h2
+          className="text-xl font-semibold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent"
+          style={{ fontFamily: 'Poppins, sans-serif' }}
+        >
           {chore ? 'Edit Chore' : 'Add Chore'}
         </h2>
-        <button 
+        <button
           onClick={onCancel}
           className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
         >
           <X size={20} />
         </button>
       </div>
-      
+
       <form onSubmit={handleSubmit}>
         <div className="mb-5">
-          <label htmlFor="title" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+          <label
+            htmlFor="title"
+            className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5"
+          >
             Title
           </label>
           <input
@@ -154,9 +160,12 @@ export default function ChoreForm({ chore, familyMembers, onSubmit, onCancel }: 
             required
           />
         </div>
-        
+
         <div className="mb-5">
-          <label htmlFor="description" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+          <label
+            htmlFor="description"
+            className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5"
+          >
             Description (optional)
           </label>
           <textarea
@@ -167,7 +176,7 @@ export default function ChoreForm({ chore, familyMembers, onSubmit, onCancel }: 
             rows={2}
           />
         </div>
-        
+
         <div className="mb-5">
           <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
             Assign To
@@ -204,7 +213,7 @@ export default function ChoreForm({ chore, familyMembers, onSubmit, onCancel }: 
             </div>
           )}
         </div>
-        
+
         {assignedTo.length > 1 && (
           <div className="mb-5 p-3 rounded-xl bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800/30">
             <div className="flex items-center">
@@ -222,11 +231,14 @@ export default function ChoreForm({ chore, familyMembers, onSubmit, onCancel }: 
                 Rotate among assigned members
               </label>
             </div>
-            
+
             {isRotating && (
               <div className="mt-3 pl-6 space-y-3">
                 <div>
-                  <label htmlFor="rotationFrequency" className="block text-sm font-medium text-indigo-700 dark:text-indigo-300 mb-1">
+                  <label
+                    htmlFor="rotationFrequency"
+                    className="block text-sm font-medium text-indigo-700 dark:text-indigo-300 mb-1"
+                  >
                     Rotation Frequency
                   </label>
                   <select
@@ -247,10 +259,13 @@ export default function ChoreForm({ chore, familyMembers, onSubmit, onCancel }: 
                     <option value="monthly">Monthly</option>
                   </select>
                 </div>
-                
+
                 {rotationFrequency === 'weekly' && (
                   <div>
-                    <label htmlFor="rotationDay" className="block text-sm font-medium text-indigo-700 dark:text-indigo-300 mb-1">
+                    <label
+                      htmlFor="rotationDay"
+                      className="block text-sm font-medium text-indigo-700 dark:text-indigo-300 mb-1"
+                    >
                       Rotation Day
                     </label>
                     <select
@@ -269,10 +284,13 @@ export default function ChoreForm({ chore, familyMembers, onSubmit, onCancel }: 
                     </select>
                   </div>
                 )}
-                
+
                 {rotationFrequency === 'monthly' && (
                   <div>
-                    <label htmlFor="rotationDayMonth" className="block text-sm font-medium text-indigo-700 dark:text-indigo-300 mb-1">
+                    <label
+                      htmlFor="rotationDayMonth"
+                      className="block text-sm font-medium text-indigo-700 dark:text-indigo-300 mb-1"
+                    >
                       Day of Month
                     </label>
                     <select
@@ -281,24 +299,28 @@ export default function ChoreForm({ chore, familyMembers, onSubmit, onCancel }: 
                       onChange={(e) => setRotationDay(parseInt(e.target.value))}
                       className="w-full px-3 py-1.5 text-sm border border-indigo-200 dark:border-indigo-800 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:bg-indigo-900/30 transition-colors"
                     >
-                      {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
+                      {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
                         <option key={day} value={day}>
-                          {day}{day === 1 ? 'st' : day === 2 ? 'nd' : day === 3 ? 'rd' : 'th'}
+                          {day}
+                          {day === 1 ? 'st' : day === 2 ? 'nd' : day === 3 ? 'rd' : 'th'}
                         </option>
                       ))}
                     </select>
                   </div>
                 )}
-                
+
                 <p className="text-xs text-indigo-600 dark:text-indigo-400">
-                  {rotationFrequency ? 
-                    `This chore will rotate ${rotationFrequency === 'daily' ? 'daily' : 
-                      rotationFrequency === 'weekly' ? `every ${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][rotationDay || 0]}` : 
-                      `on day ${rotationDay} monthly`}` : 
-                    "This chore will use the global rotation settings configured in Settings"
-                  }
+                  {rotationFrequency
+                    ? `This chore will rotate ${
+                        rotationFrequency === 'daily'
+                          ? 'daily'
+                          : rotationFrequency === 'weekly'
+                            ? `every ${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][rotationDay || 0]}`
+                            : `on day ${rotationDay} monthly`
+                      }`
+                    : 'This chore will use the global rotation settings configured in Settings'}
                 </p>
-                
+
                 {/* Drag and drop for rotation order */}
                 <div className="mt-2">
                   <label className="block text-sm font-medium text-indigo-700 dark:text-indigo-300 mb-1">
@@ -309,23 +331,20 @@ export default function ChoreForm({ chore, familyMembers, onSubmit, onCancel }: 
                       <p className="text-xs text-indigo-600 dark:text-indigo-400 mb-2">
                         Drag members to change order. The first person will be initially assigned.
                       </p>
-                      
-                      <DndContext 
+
+                      <DndContext
                         sensors={sensors}
                         collisionDetection={closestCenter}
                         onDragEnd={handleDragEnd}
                       >
-                        <SortableContext 
-                          items={assignedTo}
-                          strategy={verticalListSortingStrategy}
-                        >
+                        <SortableContext items={assignedTo} strategy={verticalListSortingStrategy}>
                           <div className="bg-white dark:bg-slate-800 rounded-lg border border-indigo-100 dark:border-indigo-800/30">
                             {assignedTo.map((memberId, index) => {
                               const member = getFamilyMember(memberId);
                               if (!member) return null;
-                              
+
                               return (
-                                <SortableItem 
+                                <SortableItem
                                   key={memberId}
                                   id={memberId}
                                   member={member}
@@ -338,9 +357,10 @@ export default function ChoreForm({ chore, familyMembers, onSubmit, onCancel }: 
                           </div>
                         </SortableContext>
                       </DndContext>
-                      
+
                       <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 italic">
-                        Click and hold the grip handle <GripVertical size={12} className="inline-block mx-0.5" /> to drag
+                        Click and hold the grip handle{' '}
+                        <GripVertical size={12} className="inline-block mx-0.5" /> to drag
                       </p>
                     </>
                   ) : (
@@ -353,15 +373,20 @@ export default function ChoreForm({ chore, familyMembers, onSubmit, onCancel }: 
             )}
           </div>
         )}
-        
+
         <div className="mb-5">
-          <label htmlFor="frequency" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+          <label
+            htmlFor="frequency"
+            className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5"
+          >
             Frequency
           </label>
           <select
             id="frequency"
             value={frequency}
-            onChange={(e) => setFrequency(e.target.value as 'daily' | 'weekly' | 'monthly' | 'once')}
+            onChange={(e) =>
+              setFrequency(e.target.value as 'daily' | 'weekly' | 'monthly' | 'once')
+            }
             className="w-full px-4 py-2.5 border border-gray-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:bg-slate-800 transition-colors"
           >
             <option value="daily">Daily</option>
@@ -370,7 +395,7 @@ export default function ChoreForm({ chore, familyMembers, onSubmit, onCancel }: 
             <option value="once">One-time</option>
           </select>
         </div>
-        
+
         {frequency === 'weekly' && (
           <div className="mb-5">
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
@@ -394,10 +419,13 @@ export default function ChoreForm({ chore, familyMembers, onSubmit, onCancel }: 
             </div>
           </div>
         )}
-        
+
         {frequency === 'monthly' && (
           <div className="mb-5">
-            <label htmlFor="dayOfMonth" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+            <label
+              htmlFor="dayOfMonth"
+              className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5"
+            >
               Day of Month
             </label>
             <input
@@ -412,15 +440,20 @@ export default function ChoreForm({ chore, familyMembers, onSubmit, onCancel }: 
             />
           </div>
         )}
-        
+
         <div className="mb-6">
-          <label htmlFor="timeOfDay" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+          <label
+            htmlFor="timeOfDay"
+            className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5"
+          >
             Time of Day (optional)
           </label>
           <select
             id="timeOfDay"
             value={timeOfDay || ''}
-            onChange={(e) => setTimeOfDay(e.target.value as 'morning' | 'afternoon' | 'evening' | undefined)}
+            onChange={(e) =>
+              setTimeOfDay(e.target.value as 'morning' | 'afternoon' | 'evening' | undefined)
+            }
             className="w-full px-4 py-2.5 border border-gray-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:bg-slate-800 transition-colors"
           >
             <option value="">Any time</option>
@@ -429,13 +462,9 @@ export default function ChoreForm({ chore, familyMembers, onSubmit, onCancel }: 
             <option value="evening">Evening</option>
           </select>
         </div>
-        
+
         <div className="flex justify-end space-x-3">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="btn-secondary"
-          >
+          <button type="button" onClick={onCancel} className="btn-secondary">
             Cancel
           </button>
           <button
@@ -460,15 +489,10 @@ interface SortableItemProps {
 }
 
 function SortableItem({ id, member, index, isFirst, isLast }: SortableItemProps) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging
-  } = useSortable({ id });
-  
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id,
+  });
+
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -482,17 +506,15 @@ function SortableItem({ id, member, index, isFirst, isLast }: SortableItemProps)
       ref={setNodeRef}
       style={style}
       className={`flex items-center p-2 ${
-        isFirst 
-          ? 'bg-green-50 dark:bg-green-900/20 border-l-4 border-green-500' 
+        isFirst
+          ? 'bg-green-50 dark:bg-green-900/20 border-l-4 border-green-500'
           : !isLast
             ? 'border-b border-indigo-50 dark:border-indigo-800/30'
             : ''
-      } ${
-        isDragging ? 'shadow-md bg-blue-50 dark:bg-blue-900/20' : ''
-      }`}
+      } ${isDragging ? 'shadow-md bg-blue-50 dark:bg-blue-900/20' : ''}`}
       {...attributes}
     >
-      <div 
+      <div
         {...listeners}
         className="mr-2 text-gray-400 p-1 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700 cursor-grab active:cursor-grabbing touch-manipulation"
         aria-label="Drag to reorder"
@@ -505,9 +527,7 @@ function SortableItem({ id, member, index, isFirst, isLast }: SortableItemProps)
       >
         {member.initial}
       </div>
-      <span className="text-sm text-slate-700 dark:text-slate-300">
-        {member.name}
-      </span>
+      <span className="text-sm text-slate-700 dark:text-slate-300">{member.name}</span>
       {isFirst && (
         <span className="ml-auto text-xs bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-200 px-2 py-0.5 rounded-full">
           Currently Assigned

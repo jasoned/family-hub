@@ -32,23 +32,25 @@ body {
 
 /* Lighter gradient background effect */
 .bg-gradient-mesh {
-  background-image: radial-gradient(at 40% 20%, rgba(79, 70, 229, 0.01) 0px, transparent 50%),
-                    radial-gradient(at 80% 0%, rgba(236, 72, 153, 0.01) 0px, transparent 50%),
-                    radial-gradient(at 0% 50%, rgba(16, 185, 129, 0.01) 0px, transparent 50%),
-                    radial-gradient(at 80% 50%, rgba(249, 115, 22, 0.01) 0px, transparent 50%),
-                    radial-gradient(at 0% 100%, rgba(192, 132, 252, 0.01) 0px, transparent 50%),
-                    radial-gradient(at 80% 100%, rgba(14, 165, 233, 0.01) 0px, transparent 50%),
-                    radial-gradient(at 0% 0%, rgba(79, 70, 229, 0.01) 0px, transparent 50%);
+  background-image:
+    radial-gradient(at 40% 20%, rgba(79, 70, 229, 0.01) 0px, transparent 50%),
+    radial-gradient(at 80% 0%, rgba(236, 72, 153, 0.01) 0px, transparent 50%),
+    radial-gradient(at 0% 50%, rgba(16, 185, 129, 0.01) 0px, transparent 50%),
+    radial-gradient(at 80% 50%, rgba(249, 115, 22, 0.01) 0px, transparent 50%),
+    radial-gradient(at 0% 100%, rgba(192, 132, 252, 0.01) 0px, transparent 50%),
+    radial-gradient(at 80% 100%, rgba(14, 165, 233, 0.01) 0px, transparent 50%),
+    radial-gradient(at 0% 0%, rgba(79, 70, 229, 0.01) 0px, transparent 50%);
 }
 
 .dark .bg-gradient-mesh {
-  background-image: radial-gradient(at 40% 20%, rgba(79, 70, 229, 0.1) 0px, transparent 50%),
-                    radial-gradient(at 80% 0%, rgba(236, 72, 153, 0.1) 0px, transparent 50%),
-                    radial-gradient(at 0% 50%, rgba(16, 185, 129, 0.1) 0px, transparent 50%),
-                    radial-gradient(at 80% 50%, rgba(249, 115, 22, 0.1) 0px, transparent 50%),
-                    radial-gradient(at 0% 100%, rgba(192, 132, 252, 0.1) 0px, transparent 50%),
-                    radial-gradient(at 80% 100%, rgba(14, 165, 233, 0.1) 0px, transparent 50%),
-                    radial-gradient(at 0% 0%, rgba(79, 70, 229, 0.1) 0px, transparent 50%);
+  background-image:
+    radial-gradient(at 40% 20%, rgba(79, 70, 229, 0.1) 0px, transparent 50%),
+    radial-gradient(at 80% 0%, rgba(236, 72, 153, 0.1) 0px, transparent 50%),
+    radial-gradient(at 0% 50%, rgba(16, 185, 129, 0.1) 0px, transparent 50%),
+    radial-gradient(at 80% 50%, rgba(249, 115, 22, 0.1) 0px, transparent 50%),
+    radial-gradient(at 0% 100%, rgba(192, 132, 252, 0.1) 0px, transparent 50%),
+    radial-gradient(at 80% 100%, rgba(14, 165, 233, 0.1) 0px, transparent 50%),
+    radial-gradient(at 0% 0%, rgba(79, 70, 229, 0.1) 0px, transparent 50%);
 }
 
 /* Button styles */

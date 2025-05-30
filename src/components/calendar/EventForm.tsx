@@ -27,33 +27,41 @@ const EVENT_TYPES = [
   { value: 'Other', label: 'Other', color: '#6B7280' },
 ];
 
-export default function EventForm({ event, date, familyMembers, onSubmit, onCancel }: EventFormProps) {
+export default function EventForm({
+  event,
+  date,
+  familyMembers,
+  onSubmit,
+  onCancel,
+}: EventFormProps) {
   const [title, setTitle] = useState(event?.title || '');
-  const [memberId, setMemberId] = useState(event?.memberId || (familyMembers.length > 0 ? familyMembers[0].id : ''));
+  const [memberId, setMemberId] = useState(
+    event?.memberId || (familyMembers.length > 0 ? familyMembers[0].id : ''),
+  );
   const [startDate, setStartDate] = useState(
-    event?.start ? new Date(event.start) : date ? new Date(date) : new Date()
+    event?.start ? new Date(event.start) : date ? new Date(date) : new Date(),
   );
   const [endDate, setEndDate] = useState(
-    event?.end ? new Date(event.end) : date ? addHours(new Date(date), 1) : addHours(new Date(), 1)
+    event?.end ? new Date(event.end) : date ? addHours(new Date(date), 1) : addHours(new Date(), 1),
   );
   const [allDay, setAllDay] = useState(event?.allDay || false);
   const [location, setLocation] = useState(event?.location || '');
   const [description, setDescription] = useState(event?.description || '');
   const [eventType, setEventType] = useState(event?.eventType || 'Other');
   const [endTimeManuallySet, setEndTimeManuallySet] = useState(!!event);
-  
+
   // Recurrence options
   const [isRecurring, setIsRecurring] = useState(event?.isRecurring || false);
   const [recurrencePattern, setRecurrencePattern] = useState(event?.recurrencePattern || 'weekly');
   const [recurrenceInterval, setRecurrenceInterval] = useState(event?.recurrenceInterval || 1);
   const [recurrenceEndDate, setRecurrenceEndDate] = useState(event?.recurrenceEndDate);
   const [recurrenceDaysOfWeek, setRecurrenceDaysOfWeek] = useState(
-    event?.recurrenceDaysOfWeek || startDate ? [startDate.getDay()] : [0]
+    event?.recurrenceDaysOfWeek || startDate ? [startDate.getDay()] : [0],
   );
   const [recurrenceDayOfMonth, setRecurrenceDayOfMonth] = useState(
-    event?.recurrenceDayOfMonth || (startDate ? startDate.getDate() : 1)
+    event?.recurrenceDayOfMonth || (startDate ? startDate.getDate() : 1),
   );
-  
+
   // Edit mode for recurring events
   const [editMode, setEditMode] = useState<'single' | 'all' | 'future'>('single');
 
@@ -83,7 +91,7 @@ export default function EventForm({ event, date, familyMembers, onSubmit, onCanc
     // Handle "All Family Members" option
     if (memberId === 'all') {
       // Create an event for each family member
-      familyMembers.forEach(member => {
+      familyMembers.forEach((member) => {
         onSubmit({
           title: title.trim(),
           memberId: member.id,
@@ -97,9 +105,11 @@ export default function EventForm({ event, date, familyMembers, onSubmit, onCanc
           recurrencePattern,
           recurrenceInterval,
           recurrenceEndDate,
-          recurrenceDaysOfWeek: isRecurring && recurrencePattern === 'weekly' ? recurrenceDaysOfWeek : undefined,
-          recurrenceDayOfMonth: isRecurring && recurrencePattern === 'monthly' ? recurrenceDayOfMonth : undefined,
-          editMode: event?.isRecurring ? editMode : undefined
+          recurrenceDaysOfWeek:
+            isRecurring && recurrencePattern === 'weekly' ? recurrenceDaysOfWeek : undefined,
+          recurrenceDayOfMonth:
+            isRecurring && recurrencePattern === 'monthly' ? recurrenceDayOfMonth : undefined,
+          editMode: event?.isRecurring ? editMode : undefined,
         });
       });
     } else {
@@ -117,13 +127,15 @@ export default function EventForm({ event, date, familyMembers, onSubmit, onCanc
         recurrencePattern,
         recurrenceInterval,
         recurrenceEndDate,
-        recurrenceDaysOfWeek: isRecurring && recurrencePattern === 'weekly' ? recurrenceDaysOfWeek : undefined,
-        recurrenceDayOfMonth: isRecurring && recurrencePattern === 'monthly' ? recurrenceDayOfMonth : undefined,
-        editMode: event?.isRecurring ? editMode : undefined
+        recurrenceDaysOfWeek:
+          isRecurring && recurrencePattern === 'weekly' ? recurrenceDaysOfWeek : undefined,
+        recurrenceDayOfMonth:
+          isRecurring && recurrencePattern === 'monthly' ? recurrenceDayOfMonth : undefined,
+        editMode: event?.isRecurring ? editMode : undefined,
       });
     }
   };
-  
+
   // Handle recurrence options update
   const handleRecurrenceUpdate = (options: {
     isRecurring: boolean;
@@ -142,7 +154,7 @@ export default function EventForm({ event, date, familyMembers, onSubmit, onCanc
   };
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.95 }}
@@ -150,7 +162,10 @@ export default function EventForm({ event, date, familyMembers, onSubmit, onCanc
     >
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h2 className="text-xl font-semibold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent" style={{ fontFamily: 'Poppins, sans-serif' }}>
+          <h2
+            className="text-xl font-semibold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent"
+            style={{ fontFamily: 'Poppins, sans-serif' }}
+          >
             {event ? 'Edit Event' : 'Add Event'}
           </h2>
           {event && (
@@ -160,17 +175,20 @@ export default function EventForm({ event, date, familyMembers, onSubmit, onCanc
             </p>
           )}
         </div>
-        <button 
+        <button
           onClick={onCancel}
           className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
         >
           <X size={20} />
         </button>
       </div>
-      
+
       <form onSubmit={handleSubmit}>
         <div className="mb-5">
-          <label htmlFor="title" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+          <label
+            htmlFor="title"
+            className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5"
+          >
             Title
           </label>
           <input
@@ -183,9 +201,12 @@ export default function EventForm({ event, date, familyMembers, onSubmit, onCanc
             placeholder="Enter event title"
           />
         </div>
-        
+
         <div className="mb-5">
-          <label htmlFor="eventType" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5 flex items-center">
+          <label
+            htmlFor="eventType"
+            className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5 flex items-center"
+          >
             <Tag size={16} className="mr-1 text-slate-400" />
             Event Type
           </label>
@@ -196,7 +217,7 @@ export default function EventForm({ event, date, familyMembers, onSubmit, onCanc
               onChange={(e) => setEventType(e.target.value as any)}
               className="w-full px-4 py-2.5 border border-gray-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:bg-slate-800 transition-colors appearance-none"
             >
-              {EVENT_TYPES.map(type => (
+              {EVENT_TYPES.map((type) => (
                 <option key={type.value} value={type.value}>
                   {type.label}
                 </option>
@@ -204,9 +225,12 @@ export default function EventForm({ event, date, familyMembers, onSubmit, onCanc
             </select>
           </div>
         </div>
-        
+
         <div className="mb-5">
-          <label htmlFor="memberId" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+          <label
+            htmlFor="memberId"
+            className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5"
+          >
             Family Member
           </label>
           <div className="relative">
@@ -240,7 +264,7 @@ export default function EventForm({ event, date, familyMembers, onSubmit, onCanc
             </p>
           )}
         </div>
-        
+
         <div className="mb-5">
           <div className="flex items-center mb-2">
             <input
@@ -250,24 +274,30 @@ export default function EventForm({ event, date, familyMembers, onSubmit, onCanc
               onChange={(e) => setAllDay(e.target.checked)}
               className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
             />
-            <label htmlFor="allDay" className="ml-2 block text-sm text-slate-700 dark:text-slate-300">
+            <label
+              htmlFor="allDay"
+              className="ml-2 block text-sm text-slate-700 dark:text-slate-300"
+            >
               All-day event
             </label>
           </div>
-          
+
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label htmlFor="startDate" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+              <label
+                htmlFor="startDate"
+                className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5"
+              >
                 Start
               </label>
               <input
-                type={allDay ? "date" : "datetime-local"}
+                type={allDay ? 'date' : 'datetime-local'}
                 id="startDate"
                 value={formatDateForInput(startDate)}
                 onChange={(e) => {
                   const newStartDate = new Date(e.target.value);
                   setStartDate(newStartDate);
-                  
+
                   // Auto-adjust end time to be 1 hour after start time if end time is before start time
                   if (endDate <= newStartDate) {
                     setEndDate(addHours(newStartDate, 1));
@@ -277,22 +307,25 @@ export default function EventForm({ event, date, familyMembers, onSubmit, onCanc
                 required
               />
             </div>
-            
+
             <div>
-              <label htmlFor="endDate" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+              <label
+                htmlFor="endDate"
+                className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5"
+              >
                 End
               </label>
               <input
-                type={allDay ? "date" : "datetime-local"}
+                type={allDay ? 'date' : 'datetime-local'}
                 id="endDate"
                 value={formatDateForInput(endDate)}
                 onChange={(e) => {
                   const newEndDate = new Date(e.target.value);
                   setEndTimeManuallySet(true);
-                  
+
                   // Ensure end date is not before start date
                   if (newEndDate <= startDate) {
-                    alert("End time must be after start time");
+                    alert('End time must be after start time');
                     setEndDate(addHours(startDate, 1));
                   } else {
                     setEndDate(newEndDate);
@@ -303,14 +336,18 @@ export default function EventForm({ event, date, familyMembers, onSubmit, onCanc
                 min={formatDateForInput(startDate)}
               />
               <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                Duration: {Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60))} minutes
+                Duration: {Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60))}{' '}
+                minutes
               </div>
             </div>
           </div>
         </div>
-        
+
         <div className="mb-5">
-          <label htmlFor="location" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5 flex items-center">
+          <label
+            htmlFor="location"
+            className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5 flex items-center"
+          >
             <MapPin size={16} className="mr-1 text-slate-400" />
             Location (optional)
           </label>
@@ -323,9 +360,12 @@ export default function EventForm({ event, date, familyMembers, onSubmit, onCanc
             placeholder="Enter location"
           />
         </div>
-        
+
         <div className="mb-6">
-          <label htmlFor="description" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+          <label
+            htmlFor="description"
+            className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5"
+          >
             Description (optional)
           </label>
           <textarea
@@ -337,7 +377,7 @@ export default function EventForm({ event, date, familyMembers, onSubmit, onCanc
             placeholder="Enter description"
           />
         </div>
-        
+
         {/* Recurrence Options */}
         <RecurrenceOptions
           isRecurring={isRecurring}
@@ -349,7 +389,7 @@ export default function EventForm({ event, date, familyMembers, onSubmit, onCanc
           onUpdate={handleRecurrenceUpdate}
           startDate={startDate}
         />
-        
+
         {/* Edit mode for recurring events */}
         {event?.isRecurring && (
           <div className="mb-5">
@@ -368,7 +408,10 @@ export default function EventForm({ event, date, familyMembers, onSubmit, onCanc
                   onChange={() => setEditMode('single')}
                   className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
                 />
-                <label htmlFor="editSingle" className="ml-2 block text-sm text-slate-700 dark:text-slate-300">
+                <label
+                  htmlFor="editSingle"
+                  className="ml-2 block text-sm text-slate-700 dark:text-slate-300"
+                >
                   Edit only this event
                 </label>
               </div>
@@ -382,7 +425,10 @@ export default function EventForm({ event, date, familyMembers, onSubmit, onCanc
                   onChange={() => setEditMode('all')}
                   className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
                 />
-                <label htmlFor="editAll" className="ml-2 block text-sm text-slate-700 dark:text-slate-300">
+                <label
+                  htmlFor="editAll"
+                  className="ml-2 block text-sm text-slate-700 dark:text-slate-300"
+                >
                   Edit entire series
                 </label>
               </div>
@@ -396,7 +442,10 @@ export default function EventForm({ event, date, familyMembers, onSubmit, onCanc
                   onChange={() => setEditMode('future')}
                   className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
                 />
-                <label htmlFor="editFuture" className="ml-2 block text-sm text-slate-700 dark:text-slate-300">
+                <label
+                  htmlFor="editFuture"
+                  className="ml-2 block text-sm text-slate-700 dark:text-slate-300"
+                >
                   Edit this and future events
                 </label>
               </div>
@@ -405,18 +454,10 @@ export default function EventForm({ event, date, familyMembers, onSubmit, onCanc
         )}
 
         <div className="flex justify-end space-x-3">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="btn-secondary"
-          >
+          <button type="button" onClick={onCancel} className="btn-secondary">
             Cancel
           </button>
-          <button
-            type="submit"
-            className="btn-primary"
-            disabled={familyMembers.length === 0}
-          >
+          <button type="submit" className="btn-primary" disabled={familyMembers.length === 0}>
             {event ? 'Update' : 'Add'}
           </button>
         </div>

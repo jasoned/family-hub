@@ -28,7 +28,7 @@ export default function RecurrenceOptions({
   daysOfWeek,
   dayOfMonth,
   onUpdate,
-  startDate
+  startDate,
 }: RecurrenceOptionsProps) {
   const [isEnabled, setIsEnabled] = useState(isRecurring);
   const [selectedPattern, setSelectedPattern] = useState(pattern);
@@ -40,14 +40,12 @@ export default function RecurrenceOptions({
   // Preview text for the recurrence
   const getRecurrencePreview = () => {
     if (!isEnabled) return 'Does not repeat';
-    
+
     let baseText = '';
-    
+
     switch (selectedPattern) {
       case 'daily':
-        baseText = selectedInterval === 1 
-          ? 'Every day' 
-          : `Every ${selectedInterval} days`;
+        baseText = selectedInterval === 1 ? 'Every day' : `Every ${selectedInterval} days`;
         break;
       case 'weekly':
         if (selectedInterval === 1) {
@@ -57,7 +55,7 @@ export default function RecurrenceOptions({
             baseText = 'Every day';
           } else {
             const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-            const selectedDays = selectedDaysOfWeek.map(day => days[day]).join(', ');
+            const selectedDays = selectedDaysOfWeek.map((day) => days[day]).join(', ');
             baseText = `Weekly on ${selectedDays}`;
           }
         } else {
@@ -65,19 +63,20 @@ export default function RecurrenceOptions({
         }
         break;
       case 'monthly':
-        baseText = selectedInterval === 1 
-          ? `Monthly on day ${selectedDayOfMonth}` 
-          : `Every ${selectedInterval} months on day ${selectedDayOfMonth}`;
+        baseText =
+          selectedInterval === 1
+            ? `Monthly on day ${selectedDayOfMonth}`
+            : `Every ${selectedInterval} months on day ${selectedDayOfMonth}`;
         break;
       case 'custom':
         baseText = 'Custom recurrence pattern';
         break;
     }
-    
+
     if (selectedEndDate) {
       baseText += ` until ${format(new Date(selectedEndDate), 'MMM d, yyyy')}`;
     }
-    
+
     return baseText;
   };
 
@@ -89,15 +88,15 @@ export default function RecurrenceOptions({
       interval: selectedInterval,
       endDate: selectedEndDate,
       daysOfWeek: selectedDaysOfWeek,
-      dayOfMonth: selectedDayOfMonth
+      dayOfMonth: selectedDayOfMonth,
     });
   }, [
-    isEnabled, 
-    selectedPattern, 
-    selectedInterval, 
-    selectedEndDate, 
-    selectedDaysOfWeek, 
-    selectedDayOfMonth
+    isEnabled,
+    selectedPattern,
+    selectedInterval,
+    selectedEndDate,
+    selectedDaysOfWeek,
+    selectedDayOfMonth,
   ]);
 
   // Initialize days of week from start date if not set
@@ -109,7 +108,7 @@ export default function RecurrenceOptions({
 
   const toggleDayOfWeek = (day: number) => {
     if (selectedDaysOfWeek.includes(day)) {
-      setSelectedDaysOfWeek(selectedDaysOfWeek.filter(d => d !== day));
+      setSelectedDaysOfWeek(selectedDaysOfWeek.filter((d) => d !== day));
     } else {
       setSelectedDaysOfWeek([...selectedDaysOfWeek, day]);
     }
@@ -120,9 +119,7 @@ export default function RecurrenceOptions({
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
           <Repeat1 size={18} className="text-indigo-500" />
-          <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-            Repeat
-          </span>
+          <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Repeat</span>
         </div>
         <label className="relative inline-flex items-center cursor-pointer">
           <input
@@ -140,14 +137,16 @@ export default function RecurrenceOptions({
           <div className="text-xs text-indigo-600 dark:text-indigo-400 font-medium">
             {getRecurrencePreview()}
           </div>
-          
+
           <div>
             <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
               Recurrence Pattern
             </label>
             <select
               value={selectedPattern}
-              onChange={(e) => setSelectedPattern(e.target.value as 'daily' | 'weekly' | 'monthly' | 'custom')}
+              onChange={(e) =>
+                setSelectedPattern(e.target.value as 'daily' | 'weekly' | 'monthly' | 'custom')
+              }
               className="w-full px-3 py-1.5 text-sm border border-gray-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:bg-slate-800 transition-colors"
             >
               <option value="daily">Daily</option>
@@ -159,7 +158,7 @@ export default function RecurrenceOptions({
               <option value="nth-day">Nth Day of Month</option>
             </select>
           </div>
-          
+
           <div>
             <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
               Repeat Every
@@ -174,12 +173,15 @@ export default function RecurrenceOptions({
                 className="w-16 px-2 py-1.5 text-sm border border-gray-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:bg-slate-800 transition-colors"
               />
               <span className="text-sm text-slate-600 dark:text-slate-400">
-                {selectedPattern === 'daily' ? 'day(s)' : 
-                 selectedPattern === 'weekly' ? 'week(s)' : 'month(s)'}
+                {selectedPattern === 'daily'
+                  ? 'day(s)'
+                  : selectedPattern === 'weekly'
+                    ? 'week(s)'
+                    : 'month(s)'}
               </span>
             </div>
           </div>
-          
+
           {selectedPattern === 'weekly' && (
             <div>
               <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
@@ -203,7 +205,7 @@ export default function RecurrenceOptions({
               </div>
             </div>
           )}
-          
+
           {selectedPattern === 'monthly' && (
             <div>
               <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
@@ -214,7 +216,7 @@ export default function RecurrenceOptions({
                 onChange={(e) => setSelectedDayOfMonth(Number(e.target.value))}
                 className="w-full px-3 py-1.5 text-sm border border-gray-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:bg-slate-800 transition-colors"
               >
-                {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
+                {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
                   <option key={day} value={day}>
                     {day}
                   </option>
@@ -222,7 +224,7 @@ export default function RecurrenceOptions({
               </select>
             </div>
           )}
-          
+
           <div>
             <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
               End Date (Optional)

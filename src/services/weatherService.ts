@@ -22,31 +22,32 @@ export interface WeatherData {
 export async function fetchWeather(location: string, apiKey?: string): Promise<WeatherData> {
   try {
     // Use provided API key or fallback to default
-    const effectiveApiKey = apiKey || 
+    const effectiveApiKey =
+      apiKey ||
       // Try to get from localStorage directly as a backup
-      localStorage.getItem('weatherApiKey') || 
+      localStorage.getItem('weatherApiKey') ||
       DEFAULT_API_KEY;
-    
+
     // Check if input is a US ZIP code (5 digits)
     const isUSZip = /^\d{5}$/.test(location.trim());
-    
+
     // Set parameters based on input type (ZIP or city name)
-    const params = isUSZip ? 
-      { 
-        zip: `${location.trim()},us`, 
-        appid: effectiveApiKey, 
-        units: 'imperial' 
-      } : 
-      { 
-        q: location, 
-        appid: effectiveApiKey, 
-        units: 'imperial' // Use imperial units for Fahrenheit
-      };
-      
+    const params = isUSZip
+      ? {
+          zip: `${location.trim()},us`,
+          appid: effectiveApiKey,
+          units: 'imperial',
+        }
+      : {
+          q: location,
+          appid: effectiveApiKey,
+          units: 'imperial', // Use imperial units for Fahrenheit
+        };
+
     const response = await axios.get(`${BASE_URL}/weather`, { params });
 
     const data = response.data;
-    
+
     return {
       temp: Math.round(data.main.temp),
       feelsLike: Math.round(data.main.feels_like),
@@ -57,11 +58,11 @@ export async function fetchWeather(location: string, apiKey?: string): Promise<W
       condition: data.weather[0].main,
       description: data.weather[0].description,
       icon: data.weather[0].icon,
-      location: data.name
+      location: data.name,
     };
   } catch (error: any) {
     console.error('Error fetching weather data:', error);
-    
+
     // Handle specific error cases
     if (error.message && error.message.includes('API key is required')) {
       throw new Error(error.message);
@@ -74,7 +75,9 @@ export async function fetchWeather(location: string, apiKey?: string): Promise<W
       } else if (error.response.status === 429) {
         throw new Error('API call limit reached. Please try again later.');
       } else {
-        throw new Error(`Weather service error (${error.response.status}): ${error.response.data.message || 'Unknown error'}`);
+        throw new Error(
+          `Weather service error (${error.response.status}): ${error.response.data.message || 'Unknown error'}`,
+        );
       }
     } else if (error.request) {
       // Request made but no response received

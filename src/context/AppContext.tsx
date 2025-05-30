@@ -1,10 +1,4 @@
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  ReactNode,
-} from 'react';
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { supabase } from '../supabaseClient';
 import {
   FamilyMember,
@@ -94,16 +88,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [mealPlans, setMealPlans] = useState<MealPlan[]>([]);
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [settings, setSettings] = useState<AppSettings>(defaultSettings);
-  const [calendarSettings, setCalendarSettings] = useState<CalendarSettings>(
-    defaultCalendarSettings,
-  );
+  const [calendarSettings, setCalendarSettings] =
+    useState<CalendarSettings>(defaultCalendarSettings);
 
   /* -------- helpers for realtime arrays -------- */
   const upsert = <T extends { id: string }>(rows: T[], incoming: T): T[] => {
     const i = rows.findIndex((r) => r.id === incoming.id);
-    return i === -1
-      ? [...rows, incoming]
-      : rows.map((r) => (r.id === incoming.id ? incoming : r));
+    return i === -1 ? [...rows, incoming] : rows.map((r) => (r.id === incoming.id ? incoming : r));
   };
   const remove = <T extends { id: string }>(rows: T[], id: string) =>
     rows.filter((r) => r.id !== id);
@@ -140,19 +131,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (member.name !== undefined) update.name = member.name;
     if (member.color !== undefined) update.color = member.color;
     if (member.initial !== undefined) update.initials = member.initial;
-    if (member.profilePicture !== undefined)
-      update.avatar_url = member.profilePicture;
-    const { error } = await supabase
-      .from('family_members')
-      .update(update)
-      .eq('id', id);
+    if (member.profilePicture !== undefined) update.avatar_url = member.profilePicture;
+    const { error } = await supabase.from('family_members').update(update).eq('id', id);
     if (error) console.error(error);
   }
   async function removeFamilyMember(id: string) {
-    const { error } = await supabase
-      .from('family_members')
-      .delete()
-      .eq('id', id);
+    const { error } = await supabase.from('family_members').delete().eq('id', id);
     if (error) console.error(error);
   }
 
@@ -220,18 +204,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (chore.time !== undefined) update.time = chore.time;
     if (chore.isRecurring !== undefined) update.is_recurring = chore.isRecurring;
     if (chore.isRotating !== undefined) update.is_rotating = chore.isRotating;
-    if (chore.rotationFrequency !== undefined)
-      update.rotation_frequency = chore.rotationFrequency;
+    if (chore.rotationFrequency !== undefined) update.rotation_frequency = chore.rotationFrequency;
     if (chore.rotationDay !== undefined) update.rotation_day = chore.rotationDay;
-    if (chore.lastRotated !== undefined)
-      update.last_rotated = chore.lastRotated;
+    if (chore.lastRotated !== undefined) update.last_rotated = chore.lastRotated;
     if (chore.timeOfDay !== undefined) update.time_of_day = chore.timeOfDay;
     if (chore.completed !== undefined) update.completed = chore.completed;
 
-    const { error } = await supabase
-      .from('chores')
-      .update(update)
-      .eq('id', id);
+    const { error } = await supabase.from('chores').update(update).eq('id', id);
     if (error) console.error(error);
   }
   async function removeChore(id: string) {
@@ -249,14 +228,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }
 
   async function rotateChores() {
-    const rotations = chores.filter(
-      (c) => c.isRotating && c.assignedTo.length > 1,
-    );
+    const rotations = chores.filter((c) => c.isRotating && c.assignedTo.length > 1);
     for (const chore of rotations) {
-      const newOrder = [
-        ...chore.assignedTo.slice(1),
-        chore.assignedTo[0],
-      ];
+      const newOrder = [...chore.assignedTo.slice(1), chore.assignedTo[0]];
       const newCompleted: Record<string, boolean> = {};
       newOrder.forEach((id) => (newCompleted[id] = false));
       await updateChore(chore.id, {
@@ -329,17 +303,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       recurrence_parent_id: event.recurrenceParentId,
       recurrence_exceptions: event.recurrenceExceptions,
     };
-    const { error } = await supabase
-      .from('calendar_events')
-      .update(update)
-      .eq('id', id);
+    const { error } = await supabase.from('calendar_events').update(update).eq('id', id);
     if (error) console.error(error);
   }
   async function removeCalendarEvent(id: string) {
-    const { error } = await supabase
-      .from('calendar_events')
-      .delete()
-      .eq('id', id);
+    const { error } = await supabase.from('calendar_events').delete().eq('id', id);
     if (error) console.error(error);
   }
 
@@ -358,9 +326,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setLists((data || []).map(listMap));
   }
   async function addList(list: Omit<List, 'id'>) {
-    const { error } = await supabase.from('lists').insert([
-      { name: list.title || list.name },
-    ]);
+    const { error } = await supabase.from('lists').insert([{ name: list.title || list.name }]);
     if (error) console.error(error);
   }
   async function updateList(id: string, list: Partial<List>) {
@@ -411,10 +377,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (plan.mealType !== undefined) update.meal_type = plan.mealType;
     if (plan.description !== undefined) update.description = plan.description;
     if (plan.members !== undefined) update.members = plan.members;
-    const { error } = await supabase
-      .from('meal_plans')
-      .update(update)
-      .eq('id', id);
+    const { error } = await supabase.from('meal_plans').update(update).eq('id', id);
     if (error) console.error(error);
   }
   async function removeMealPlan(id: string) {
@@ -425,8 +388,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   /* ------------------------------------------------------------------------
      Local-only UI settings
   ------------------------------------------------------------------------ */
-  const updateSettings = (s: Partial<AppSettings>) =>
-    setSettings((prev) => ({ ...prev, ...s }));
+  const updateSettings = (s: Partial<AppSettings>) => setSettings((prev) => ({ ...prev, ...s }));
   const updateCalendarSettings = (s: Partial<CalendarSettings>) =>
     setCalendarSettings((prev) => ({ ...prev, ...s }));
 
@@ -451,18 +413,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const subs = tables.map(({ key, map, setter }) =>
       supabase
         .channel(`${key}-realtime`)
-        .on(
-          'postgres_changes',
-          { event: '*', schema: 'public', table: key },
-          (payload) => {
-            const row = map(payload.new || payload.old);
-            if (payload.eventType === 'DELETE') {
-              setter((prev) => remove(prev, row.id));
-            } else {
-              setter((prev) => upsert(prev, row));
-            }
-          },
-        )
+        .on('postgres_changes', { event: '*', schema: 'public', table: key }, (payload) => {
+          const row = map(payload.new || payload.old);
+          if (payload.eventType === 'DELETE') {
+            setter((prev) => remove(prev, row.id));
+          } else {
+            setter((prev) => upsert(prev, row));
+          }
+        })
         .subscribe(),
     );
 
@@ -503,9 +461,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     updateCalendarSettings,
   };
 
-  return (
-    <AppContext.Provider value={value}>{children}</AppContext.Provider>
-  );
+  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }
 
 /* --------------------------------------------------------------------------
@@ -513,7 +469,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
 --------------------------------------------------------------------------- */
 export function useAppContext() {
   const ctx = useContext(AppContext);
-  if (!ctx)
-    throw new Error('useAppContext must be used within an AppProvider');
+  if (!ctx) throw new Error('useAppContext must be used within an AppProvider');
   return ctx;
 }

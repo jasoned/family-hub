@@ -70,8 +70,19 @@ export interface CalendarEvent {
   memberId: string; // ID of the family member
   color?: string; // Optional override for member color
   syncId?: string; // For Google Calendar sync
-  eventType?: 'School' | 'Work' | 'Fun' | 'Appointment' | 'Meal' | 'Chores' | 'Sports' | 'Birthday' | 'Holiday' | 'FamilyTime' | 'Other';
-  
+  eventType?:
+    | 'School'
+    | 'Work'
+    | 'Fun'
+    | 'Appointment'
+    | 'Meal'
+    | 'Chores'
+    | 'Sports'
+    | 'Birthday'
+    | 'Holiday'
+    | 'FamilyTime'
+    | 'Other';
+
   // Recurrence properties
   isRecurring?: boolean;
   recurrencePattern?: 'daily' | 'weekly' | 'monthly' | 'custom';

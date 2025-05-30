@@ -1,0 +1,16 @@
+{
+  "extends": ["eslint:recommended", "plugin:react/recommended"],
+  "plugins": ["react", "react-hooks", "tailwindcss"],
+  "env": {
+    "browser": true,
+    "es2021": true
+  },
+  "settings": {
+    "react": {
+      "version": "detect"
+    }
+  },
+  "rules": {
+    "react/prop-types": "off"
+  }
+}

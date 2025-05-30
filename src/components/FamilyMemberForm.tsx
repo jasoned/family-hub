@@ -31,16 +31,18 @@ const colorOptions = [
 
 export default function FamilyMemberForm({ member, onSubmit, onCancel }: FamilyMemberFormProps) {
   const [name, setName] = useState(member?.name || '');
-  const [color, setColor] = useState(member?.color || colorOptions[Math.floor(Math.random() * colorOptions.length)].value);
+  const [color, setColor] = useState(
+    member?.color || colorOptions[Math.floor(Math.random() * colorOptions.length)].value,
+  );
   const [initial, setInitial] = useState(member?.initial || '');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
-    
+
     // If no initial is provided, use the first letter of the name
     const memberInitial = initial.trim() || name.trim()[0].toUpperCase();
-    
+
     onSubmit({
       name: name.trim(),
       color,
@@ -49,36 +51,42 @@ export default function FamilyMemberForm({ member, onSubmit, onCancel }: FamilyM
   };
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.95 }}
       className="p-6 bg-white dark:bg-slate-900 rounded-2xl shadow-md border border-gray-50 dark:border-slate-800"
     >
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent" style={{ fontFamily: 'Poppins, sans-serif' }}>
+        <h2
+          className="text-xl font-semibold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent"
+          style={{ fontFamily: 'Poppins, sans-serif' }}
+        >
           {member ? 'Edit Family Member' : 'Add Family Member'}
         </h2>
-        <button 
+        <button
           onClick={onCancel}
           className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
         >
           <X size={20} />
         </button>
       </div>
-      
+
       <form onSubmit={handleSubmit}>
         <div className="flex flex-col items-center mb-6">
-          <div 
+          <div
             className="w-20 h-20 rounded-full mb-3 flex items-center justify-center text-white text-2xl shadow-md"
             style={{ backgroundColor: color }}
           >
             {initial || (name ? name[0] : <User size={32} />)}
           </div>
         </div>
-        
+
         <div className="mb-5">
-          <label htmlFor="name" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+          <label
+            htmlFor="name"
+            className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5"
+          >
             Name
           </label>
           <input
@@ -90,9 +98,12 @@ export default function FamilyMemberForm({ member, onSubmit, onCancel }: FamilyM
             required
           />
         </div>
-        
+
         <div className="mb-5">
-          <label htmlFor="initial" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+          <label
+            htmlFor="initial"
+            className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5"
+          >
             Initial (optional)
           </label>
           <input
@@ -107,7 +118,7 @@ export default function FamilyMemberForm({ member, onSubmit, onCancel }: FamilyM
             Leave blank to use the first letter of the name
           </p>
         </div>
-        
+
         <div className="mb-6">
           <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
             Color
@@ -120,7 +131,9 @@ export default function FamilyMemberForm({ member, onSubmit, onCancel }: FamilyM
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.95 }}
                 className={`w-8 h-8 rounded-full ${
-                  color === option.value ? 'ring-2 ring-offset-2 ring-indigo-500 dark:ring-offset-slate-900' : ''
+                  color === option.value
+                    ? 'ring-2 ring-offset-2 ring-indigo-500 dark:ring-offset-slate-900'
+                    : ''
                 }`}
                 style={{ backgroundColor: option.value }}
                 onClick={() => setColor(option.value)}
@@ -129,19 +142,12 @@ export default function FamilyMemberForm({ member, onSubmit, onCancel }: FamilyM
             ))}
           </div>
         </div>
-        
+
         <div className="flex justify-end space-x-3">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="btn-secondary"
-          >
+          <button type="button" onClick={onCancel} className="btn-secondary">
             Cancel
           </button>
-          <button
-            type="submit"
-            className="btn-primary"
-          >
+          <button type="submit" className="btn-primary">
             {member ? 'Update' : 'Add'}
           </button>
         </div>

@@ -12,32 +12,35 @@ export default function Settings() {
   const [apiKeyInput, setApiKeyInput] = useState(settings.weatherApiKey || '');
   const [isApiKeyVisible, setIsApiKeyVisible] = useState(false);
   const [showApiKeyInfo, setShowApiKeyInfo] = useState(false);
-  
+
   return (
     <div className="p-6 md:p-8">
-      <h1 className="text-3xl font-bold mb-8 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent" style={{ fontFamily: 'Poppins, sans-serif' }}>
+      <h1
+        className="text-3xl font-bold mb-8 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent"
+        style={{ fontFamily: 'Poppins, sans-serif' }}
+      >
         Settings
       </h1>
-      
+
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 max-w-2xl border border-gray-50 dark:border-gray-700">
         <div className="space-y-6">
           {/* Theme */}
           <div>
             <h2 className="text-lg font-semibold mb-3">Display Theme</h2>
             <div className="flex flex-wrap gap-3">
-              <ThemeButton 
+              <ThemeButton
                 label="Light"
                 icon={<Sun size={18} />}
                 isSelected={settings.theme === 'light'}
                 onClick={() => updateSettings({ theme: 'light' })}
               />
-              <ThemeButton 
+              <ThemeButton
                 label="Dark"
                 icon={<Moon size={18} />}
                 isSelected={settings.theme === 'dark'}
                 onClick={() => updateSettings({ theme: 'dark' })}
               />
-              <ThemeButton 
+              <ThemeButton
                 label="Auto"
                 icon={
                   <div className="relative">
@@ -50,7 +53,7 @@ export default function Settings() {
               />
             </div>
           </div>
-          
+
           {/* Auto Rotate Chores */}
           <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
             <div className="flex justify-between items-center mb-3">
@@ -59,8 +62,8 @@ export default function Settings() {
                 <h2 className="text-lg font-semibold">Auto Rotate Chores</h2>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
-                <input 
-                  type="checkbox" 
+                <input
+                  type="checkbox"
                   checked={settings.autoRotateChores}
                   onChange={() => updateSettings({ autoRotateChores: !settings.autoRotateChores })}
                   className="sr-only peer"
@@ -68,9 +71,9 @@ export default function Settings() {
                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 dark:peer-focus:ring-indigo-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
               </label>
             </div>
-            
+
             {settings.autoRotateChores && (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
@@ -78,17 +81,27 @@ export default function Settings() {
                 className="mt-4 space-y-4 bg-gray-50 dark:bg-gray-700/30 p-4 rounded-lg"
               >
                 <div>
-                  <label htmlFor="rotationFrequency" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                  <label
+                    htmlFor="rotationFrequency"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"
+                  >
                     Rotation Frequency
                   </label>
                   <select
                     id="rotationFrequency"
                     value={settings.rotationFrequency}
-                    onChange={(e) => updateSettings({ 
-                      rotationFrequency: e.target.value as 'daily' | 'weekly' | 'monthly',
-                      // Reset rotation day when changing frequency
-                      rotationDay: e.target.value === 'weekly' ? 0 : e.target.value === 'monthly' ? 1 : undefined
-                    })}
+                    onChange={(e) =>
+                      updateSettings({
+                        rotationFrequency: e.target.value as 'daily' | 'weekly' | 'monthly',
+                        // Reset rotation day when changing frequency
+                        rotationDay:
+                          e.target.value === 'weekly'
+                            ? 0
+                            : e.target.value === 'monthly'
+                              ? 1
+                              : undefined,
+                      })
+                    }
                     className="w-full px-4 py-2.5 border border-gray-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:bg-slate-800 transition-colors"
                   >
                     <option value="daily">Daily</option>
@@ -96,10 +109,13 @@ export default function Settings() {
                     <option value="monthly">Monthly</option>
                   </select>
                 </div>
-                
+
                 {settings.rotationFrequency === 'weekly' && (
                   <div>
-                    <label htmlFor="rotationDay" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                    <label
+                      htmlFor="rotationDay"
+                      className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"
+                    >
                       Day of Week
                     </label>
                     <select
@@ -118,10 +134,13 @@ export default function Settings() {
                     </select>
                   </div>
                 )}
-                
+
                 {settings.rotationFrequency === 'monthly' && (
                   <div>
-                    <label htmlFor="rotationDayMonth" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                    <label
+                      htmlFor="rotationDayMonth"
+                      className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"
+                    >
                       Day of Month
                     </label>
                     <select
@@ -130,37 +149,39 @@ export default function Settings() {
                       onChange={(e) => updateSettings({ rotationDay: parseInt(e.target.value) })}
                       className="w-full px-4 py-2.5 border border-gray-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:bg-slate-800 transition-colors"
                     >
-                      {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
+                      {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
                         <option key={day} value={day}>
-                          {day}{day === 1 ? 'st' : day === 2 ? 'nd' : day === 3 ? 'rd' : 'th'}
+                          {day}
+                          {day === 1 ? 'st' : day === 2 ? 'nd' : day === 3 ? 'rd' : 'th'}
                         </option>
                       ))}
                     </select>
                   </div>
                 )}
-                
+
                 <div className="text-sm text-gray-500 dark:text-gray-400 bg-indigo-50 dark:bg-indigo-900/20 p-3 rounded-lg border border-indigo-100 dark:border-indigo-800/30">
-                  <p className="font-medium text-indigo-700 dark:text-indigo-300 mb-1">How it works:</p>
+                  <p className="font-medium text-indigo-700 dark:text-indigo-300 mb-1">
+                    How it works:
+                  </p>
                   <p>
-                    {settings.rotationFrequency === 'daily' ? 
-                      'Chores will automatically rotate every day at midnight.' : 
-                      settings.rotationFrequency === 'weekly' ? 
-                        `Chores will automatically rotate every ${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][settings.rotationDay || 0]} at midnight.` : 
-                        `Chores will automatically rotate on day ${settings.rotationDay} of each month at midnight.`
-                    }
+                    {settings.rotationFrequency === 'daily'
+                      ? 'Chores will automatically rotate every day at midnight.'
+                      : settings.rotationFrequency === 'weekly'
+                        ? `Chores will automatically rotate every ${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][settings.rotationDay || 0]} at midnight.`
+                        : `Chores will automatically rotate on day ${settings.rotationDay} of each month at midnight.`}
                   </p>
                 </div>
               </motion.div>
             )}
           </div>
-          
+
           {/* Sleep Mode */}
           <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
             <div className="flex justify-between items-center mb-3">
               <h2 className="text-lg font-semibold">Sleep Mode</h2>
               <label className="relative inline-flex items-center cursor-pointer">
-                <input 
-                  type="checkbox" 
+                <input
+                  type="checkbox"
                   checked={settings.sleepMode}
                   onChange={() => updateSettings({ sleepMode: !settings.sleepMode })}
                   className="sr-only peer"
@@ -168,11 +189,14 @@ export default function Settings() {
                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
               </label>
             </div>
-            
+
             {settings.sleepMode && (
               <div className="grid grid-cols-2 gap-4 mt-3">
                 <div>
-                  <label htmlFor="sleepStart" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label
+                    htmlFor="sleepStart"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >
                     Sleep Start
                   </label>
                   <input
@@ -184,7 +208,10 @@ export default function Settings() {
                   />
                 </div>
                 <div>
-                  <label htmlFor="sleepEnd" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label
+                    htmlFor="sleepEnd"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >
                     Sleep End
                   </label>
                   <input
@@ -198,7 +225,7 @@ export default function Settings() {
               </div>
             )}
           </div>
-          
+
           {/* Weather Widget */}
           <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
             <div className="flex justify-between items-center mb-3">
@@ -207,8 +234,8 @@ export default function Settings() {
                 <h2 className="text-lg font-semibold">Weather Widget</h2>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
-                <input 
-                  type="checkbox" 
+                <input
+                  type="checkbox"
                   checked={settings.showWeather}
                   onChange={() => updateSettings({ showWeather: !settings.showWeather })}
                   className="sr-only peer"
@@ -216,7 +243,7 @@ export default function Settings() {
                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
               </label>
             </div>
-            
+
             {settings.showWeather && (
               <div className="mt-3 space-y-4">
                 {/* Weather API Key */}
@@ -225,11 +252,14 @@ export default function Settings() {
                     <div className="flex items-start">
                       <Key className="text-blue-500 mr-2 mt-0.5 flex-shrink-0" size={18} />
                       <div>
-                        <label htmlFor="weatherApiKey" className="block text-sm font-medium text-blue-700 dark:text-blue-300 mb-1">
+                        <label
+                          htmlFor="weatherApiKey"
+                          className="block text-sm font-medium text-blue-700 dark:text-blue-300 mb-1"
+                        >
                           OpenWeatherMap API Key
                         </label>
                         <div className="text-xs text-blue-600 dark:text-blue-400 mb-2 flex items-center">
-                          <button 
+                          <button
                             onClick={() => setShowApiKeyInfo(!showApiKeyInfo)}
                             className="inline-flex items-center hover:underline"
                             aria-expanded={showApiKeyInfo}
@@ -244,10 +274,10 @@ export default function Settings() {
                       onClick={() => setIsApiKeyVisible(!isApiKeyVisible)}
                       className="text-xs text-blue-500 hover:text-blue-700 dark:hover:text-blue-300"
                     >
-                      {isApiKeyVisible ? "Hide" : "Show"}
+                      {isApiKeyVisible ? 'Hide' : 'Show'}
                     </button>
                   </div>
-                  
+
                   {showApiKeyInfo && (
                     <motion.div
                       initial={{ opacity: 0, height: 0 }}
@@ -256,25 +286,39 @@ export default function Settings() {
                       className="text-sm text-blue-600 dark:text-blue-400 bg-white/50 dark:bg-blue-900/30 p-3 rounded-lg mb-3 mt-2"
                     >
                       <ol className="list-decimal pl-5 space-y-1">
-                        <li>Visit <a href="https://openweathermap.org/api" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center">
-                          OpenWeatherMap.org <ExternalLink size={12} className="inline ml-1" />
-                        </a></li>
+                        <li>
+                          Visit{' '}
+                          <a
+                            href="https://openweathermap.org/api"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline flex items-center"
+                          >
+                            OpenWeatherMap.org <ExternalLink size={12} className="inline ml-1" />
+                          </a>
+                        </li>
                         <li>Sign up for a free account</li>
                         <li>Once registered, go to the "API Keys" tab in your account</li>
                         <li>Copy your default API key or create a new one</li>
                         <li>Paste it in the field below</li>
-                        <li className="font-bold text-blue-700 dark:text-blue-300">Important: New API keys may take up to 2 hours to activate</li>
+                        <li className="font-bold text-blue-700 dark:text-blue-300">
+                          Important: New API keys may take up to 2 hours to activate
+                        </li>
                       </ol>
-                      <p className="mt-2 text-xs text-blue-500">The free tier allows up to 1,000 API calls per day, which is more than enough for personal use.</p>
+                      <p className="mt-2 text-xs text-blue-500">
+                        The free tier allows up to 1,000 API calls per day, which is more than
+                        enough for personal use.
+                      </p>
                       <div className="mt-2 p-2 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800/30 rounded text-xs text-yellow-800 dark:text-yellow-200">
-                        ⚠️ Note: This app requires a valid API key for the weather feature to work. The key is stored only on your device.
+                        ⚠️ Note: This app requires a valid API key for the weather feature to work.
+                        The key is stored only on your device.
                       </div>
                     </motion.div>
                   )}
-                  
+
                   <div className="relative">
                     <input
-                      type={isApiKeyVisible ? "text" : "password"}
+                      type={isApiKeyVisible ? 'text' : 'password'}
                       id="weatherApiKey"
                       value={apiKeyInput}
                       onChange={(e) => setApiKeyInput(e.target.value)}
@@ -284,11 +328,15 @@ export default function Settings() {
                     <button
                       onClick={() => {
                         if (!apiKeyInput.trim()) {
-                          alert("Please enter an API key. Weather functionality requires a valid OpenWeatherMap API key.");
+                          alert(
+                            'Please enter an API key. Weather functionality requires a valid OpenWeatherMap API key.',
+                          );
                           return;
                         }
                         updateSettings({ weatherApiKey: apiKeyInput });
-                        alert("API key saved successfully! The weather data will update on the dashboard.");
+                        alert(
+                          'API key saved successfully! The weather data will update on the dashboard.',
+                        );
                       }}
                       className="absolute right-2 top-1/2 transform -translate-y-1/2 px-2 py-1 bg-blue-100 hover:bg-blue-200 dark:bg-blue-800 dark:hover:bg-blue-700 text-blue-700 dark:text-blue-300 rounded text-xs"
                     >
@@ -296,10 +344,13 @@ export default function Settings() {
                     </button>
                   </div>
                 </div>
-                
+
                 {/* Weather Location */}
                 <div>
-                  <label htmlFor="weatherLocation" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label
+                    htmlFor="weatherLocation"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >
                     Location (City, State or 5-digit ZIP code)
                   </label>
                   <div className="flex items-center gap-2">
@@ -324,28 +375,30 @@ export default function Settings() {
                     <button
                       onClick={async () => {
                         if (!locationInput.trim()) {
-                          setLocationError("Please enter a location");
+                          setLocationError('Please enter a location');
                           return;
                         }
-                        
+
                         setIsValidatingLocation(true);
                         setLocationError(null);
-                        
+
                         try {
                           // Try to fetch weather for this location to validate it
                           await fetchWeather(locationInput, settings.weatherApiKey);
-                          
+
                           // If successful, update the settings
-                          updateSettings({ 
+                          updateSettings({
                             weatherLocation: locationInput,
-                            weatherLastUpdated: new Date().toISOString() 
+                            weatherLastUpdated: new Date().toISOString(),
                           });
-                          
+
                           // Show success notification
-                          alert("Weather location updated successfully!");
+                          alert('Weather location updated successfully!');
                         } catch (error) {
                           // If error, show validation error
-                          setLocationError("Could not find this location. Please check spelling or try another nearby city.");
+                          setLocationError(
+                            'Could not find this location. Please check spelling or try another nearby city.',
+                          );
                         } finally {
                           setIsValidatingLocation(false);
                         }
@@ -367,12 +420,14 @@ export default function Settings() {
                     </button>
                   </div>
                   {locationError ? (
-                    <p className="mt-1 text-sm text-red-500 dark:text-red-400">
-                      {locationError}
-                    </p>
+                    <p className="mt-1 text-sm text-red-500 dark:text-red-400">{locationError}</p>
                   ) : (
                     <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                      Enter a city name or US ZIP code for accurate weather information. Currently set to: <span className="font-medium text-blue-500 dark:text-blue-400">{settings.weatherLocation}</span>
+                      Enter a city name or US ZIP code for accurate weather information. Currently
+                      set to:{' '}
+                      <span className="font-medium text-blue-500 dark:text-blue-400">
+                        {settings.weatherLocation}
+                      </span>
                       {settings.weatherLastUpdated && (
                         <span className="block text-xs text-gray-400 dark:text-gray-500 mt-1">
                           Last updated: {new Date(settings.weatherLastUpdated).toLocaleString()}
@@ -384,14 +439,14 @@ export default function Settings() {
               </div>
             )}
           </div>
-          
+
           {/* Rewards System */}
           <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
             <div className="flex justify-between items-center">
               <h2 className="text-lg font-semibold">Rewards System</h2>
               <label className="relative inline-flex items-center cursor-pointer">
-                <input 
-                  type="checkbox" 
+                <input
+                  type="checkbox"
                   checked={settings.showRewards}
                   onChange={() => updateSettings({ showRewards: !settings.showRewards })}
                   className="sr-only peer"
