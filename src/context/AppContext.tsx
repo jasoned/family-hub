@@ -411,18 +411,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
     ];
 
     const subs = tables.map(({ key, map, setter }) =>
-      supabase
-        .channel(`${key}-realtime`)
-        .on('postgres_changes', { event: '*', schema: 'public', table: key }, (payload) => {
-          const row = map(payload.new || payload.old);
-          if (payload.eventType === 'DELETE') {
-            setter((prev) => remove(prev, row.id));
-          } else {
-            setter((prev) => upsert(prev, row));
-          }
-        })
-        .subscribe(),
-    );
+  supabase
+    .channel(`${key}-realtime`)
+    .on('postgres_changes', { event: '*', schema: 'public', table: key }, (payload) => {
+      if (payload.eventType === 'DELETE') {
+        const deletedId = payload.old?.id;
+        if (deletedId) {
+          setter((prev) => remove(prev, deletedId));
+        }
+      } else {
+        const row = map(payload.new);
+        setter((prev) => upsert(prev, row));
+      }
+    })
+    .subscribe()
+);
 
     return () => {
       subs.forEach((ch) => supabase.removeChannel(ch));
