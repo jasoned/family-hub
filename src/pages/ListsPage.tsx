@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState } from 'react'; // Keep React for useState
 import { useAppContext } from '../context/AppContext';
-import { List as ListIcon, Plus, Trash2, Edit3, CheckSquare, Square, X, Save, Check } from 'lucide-react';
+// Removed Save, Check
+import { List as ListIcon, Plus, Trash2, Edit3, CheckSquare, Square, X } from 'lucide-react'; 
 import { motion, AnimatePresence } from 'framer-motion';
-import { List as ListType, ListItem } from '../types'; // Renamed to avoid conflict
+import { List as ListType, ListItem } from '../types';
 
 export default function ListsPage() {
   const {
@@ -14,25 +15,21 @@ export default function ListsPage() {
     updateListItem,
     removeListItem,
     toggleListItemCompletion,
-    // familyMembers, // For future assignment feature
   } = useAppContext();
 
   const [newListName, setNewListName] = useState('');
-  const [newItemTexts, setNewItemTexts] = useState<Record<string, string>>({}); // { [listId]: text }
+  const [newItemTexts, setNewItemTexts] = useState<Record<string, string>>({});
 
-  // Editing List Title
   const [editingListId, setEditingListId] = useState<string | null>(null);
   const [editingListTitle, setEditingListTitle] = useState('');
 
-  // Editing List Item Text
   const [editingListItemId, setEditingListItemId] = useState<string | null>(null);
   const [editingListItemText, setEditingListItemText] = useState('');
 
   const handleAddNewList = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newListName.trim()) return;
-    // TODO: Get current user ID for created_by if auth is implemented
-    await addList({ title: newListName.trim() /* created_by: userId */ });
+    await addList({ title: newListName.trim() });
     setNewListName('');
   };
 
@@ -53,12 +50,14 @@ export default function ListsPage() {
   };
 
   const handleSaveListTitle = async (listId: string) => {
-    if (!editingListTitle.trim()) return;
+    if (!editingListTitle.trim()) { // If empty, cancel edit
+        handleCancelEditList();
+        return;
+    }
     await updateList(listId, { title: editingListTitle.trim() });
     setEditingListId(null);
     setEditingListTitle('');
   };
-
 
   const handleNewItemTextChange = (listId: string, text: string) => {
     setNewItemTexts(prev => ({ ...prev, [listId]: text }));
@@ -68,11 +67,8 @@ export default function ListsPage() {
     e.preventDefault();
     const text = newItemTexts[listId]?.trim();
     if (!text) return;
-    // For now, position and assignedTo are not handled in this basic form.
-    // Position could be set to list.items.length for simple append.
     const currentList = lists.find(l => l.id === listId);
     const newPosition = currentList ? currentList.items.length : 0;
-
     await addListItem(listId, { text, position: newPosition });
     setNewItemTexts(prev => ({ ...prev, [listId]: '' }));
   };
@@ -98,12 +94,16 @@ export default function ListsPage() {
   };
 
   const handleSaveListItemText = async (itemId: string) => {
-    if (!editingListItemText.trim()) return;
+    if (!editingListItemText.trim()) { // if empty, maybe delete or just cancel
+        const originalItem = lists.flatMap(l => l.items).find(i => i.id === itemId);
+        if (originalItem) setEditingListItemText(originalItem.text); // revert if needed, or handle delete
+        handleCancelEditListItem();
+        return;
+    }
     await updateListItem(itemId, { text: editingListItemText.trim() });
     setEditingListItemId(null);
     setEditingListItemText('');
   };
-
 
   return (
     <div className="p-6 md:p-8 h-full overflow-y-auto">
@@ -145,7 +145,7 @@ export default function ListsPage() {
         )}
       </AnimatePresence>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-8">
         {lists.map((list) => (
           <motion.div
             key={list.id}
@@ -154,7 +154,7 @@ export default function ListsPage() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.2 }}
-            className="card p-5 flex flex-col"
+            className="card p-5 flex flex-col" // bg-white dark:bg-slate-900 shadow-sm rounded-xl border border-slate-100 dark:border-slate-800
           >
             {editingListId === list.id ? (
               <div className="mb-3">
@@ -162,20 +162,26 @@ export default function ListsPage() {
                   type="text"
                   value={editingListTitle}
                   onChange={(e) => setEditingListTitle(e.target.value)}
-                  className="input text-lg font-semibold mb-2"
+                  onBlur={() => handleSaveListTitle(list.id)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleSaveListTitle(list.id); if (e.key === 'Escape') handleCancelEditList(); }}
+                  className="input text-lg font-semibold mb-2 py-1.5" // Adjusted padding
                   autoFocus
                 />
                 <div className="flex gap-2">
                     <button onClick={() => handleSaveListTitle(list.id)} className="btn-secondary py-1 px-2 text-xs">Save</button>
-                    <button onClick={handleCancelEditList} className="btn-secondary py-1 px-2 text-xs">Cancel</button>
+                    <button onClick={handleCancelEditList} className="btn-secondary py-1 px-2 text-xs bg-slate-200 dark:bg-slate-700">Cancel</button>
                 </div>
               </div>
             ) : (
-              <div className="flex justify-between items-center mb-3">
-                <h2 className="text-xl font-semibold text-slate-800 dark:text-white flex-grow truncate" title={list.title}>
+              <div className="flex justify-between items-center mb-3 group">
+                <h2 
+                    className="text-xl font-semibold text-slate-800 dark:text-white flex-grow truncate cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400" 
+                    title={list.title}
+                    onClick={() => handleStartEditList(list)}
+                >
                   {list.title}
                 </h2>
-                <div className="flex-shrink-0 flex items-center">
+                <div className="flex-shrink-0 flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
                         onClick={() => handleStartEditList(list)}
                         className="p-1.5 text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700"
@@ -202,7 +208,7 @@ export default function ListsPage() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className={`flex items-center gap-2 p-2 rounded-lg transition-colors group ${item.completed ? 'bg-green-50 dark:bg-green-900/20' : 'bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-700/60'}`}
+                  className={`flex items-center gap-2 p-2 rounded-lg transition-colors group ${item.completed ? 'bg-green-50 dark:bg-green-800/30 opacity-70' : 'bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-700/60'}`}
                 >
                   <button onClick={() => handleToggleListItem(item.id, item.completed)} title={item.completed ? "Mark as incomplete" : "Mark as complete"}>
                     {item.completed ? <CheckSquare size={20} className="text-green-600 dark:text-green-400" /> : <Square size={20} className="text-slate-400 dark:text-slate-500" />}
@@ -241,7 +247,7 @@ export default function ListsPage() {
               )}
             </div>
 
-            <form onSubmit={(e) => handleAddNewListItem(e, list.id)} className="flex items-center gap-2 mt-auto pt-3 border-t border-slate-100 dark:border-slate-700/50">
+            <form onSubmit={(e) => handleAddNewListItem(e, list.id)} className="flex items-center gap-2 mt-auto pt-3 border-t border-slate-200 dark:border-slate-700/50">
               <input
                 type="text"
                 value={newItemTexts[list.id] || ''}
@@ -251,7 +257,7 @@ export default function ListsPage() {
               />
               <button
                 type="submit"
-                className="btn-secondary p-2"
+                className="btn-secondary p-2" // Or btn-primary
                 disabled={!(newItemTexts[list.id]?.trim())}
                 title="Add item"
               >

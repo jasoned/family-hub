@@ -7,7 +7,7 @@ import './index.css';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <BrowserRouter>
+    <BrowserRouter basename="/fam-hub"> {/* <-- MODIFIED: Added basename prop */}
       <AppProvider>
         <App />
       </AppProvider>

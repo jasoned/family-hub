@@ -55,13 +55,13 @@ export default function ChoreRow({
           )}
         </div>
 
-        {current && (
-          <div className="mt-1">
-            <span className="inline-block bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-[11px] px-2 py-[1px] rounded-full">
-              Currently:&nbsp;{current.name}
-            </span>
-          </div>
-        )}
+        {chore.isRotating && current && (
+  <div className="mt-1">
+    <span className="inline-block bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-[11px] px-2 py-[1px] rounded-full">
+      Currently:&nbsp;{current.name}
+    </span>
+  </div>
+)}
       </td>
 
       {/* ─── Frequency column ─────────────────────────────────────────── */}

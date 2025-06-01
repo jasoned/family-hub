@@ -5,7 +5,8 @@ import { motion } from 'framer-motion';
 import { fetchWeather } from '../services/weatherService';
 
 export default function Settings() {
-  const { settings, updateSettings, familyMembers } = useAppContext();
+  // Removed familyMembers from here
+  const { settings, updateSettings } = useAppContext(); 
   const [locationInput, setLocationInput] = useState(settings.weatherLocation || '');
   const [isValidatingLocation, setIsValidatingLocation] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
@@ -93,7 +94,6 @@ export default function Settings() {
                     onChange={(e) =>
                       updateSettings({
                         rotationFrequency: e.target.value as 'daily' | 'weekly' | 'monthly',
-                        // Reset rotation day when changing frequency
                         rotationDay:
                           e.target.value === 'weekly'
                             ? 0
@@ -120,7 +120,7 @@ export default function Settings() {
                     </label>
                     <select
                       id="rotationDay"
-                      value={settings.rotationDay || 0}
+                      value={settings.rotationDay ?? 0} // Provide a fallback if undefined
                       onChange={(e) => updateSettings({ rotationDay: parseInt(e.target.value) })}
                       className="w-full px-4 py-2.5 border border-gray-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:bg-slate-800 transition-colors"
                     >
@@ -145,7 +145,7 @@ export default function Settings() {
                     </label>
                     <select
                       id="rotationDayMonth"
-                      value={settings.rotationDay || 1}
+                      value={settings.rotationDay ?? 1} // Provide a fallback if undefined
                       onChange={(e) => updateSettings({ rotationDay: parseInt(e.target.value) })}
                       className="w-full px-4 py-2.5 border border-gray-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:bg-slate-800 transition-colors"
                     >
@@ -168,7 +168,7 @@ export default function Settings() {
                       ? 'Chores will automatically rotate every day at midnight.'
                       : settings.rotationFrequency === 'weekly'
                         ? `Chores will automatically rotate every ${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][settings.rotationDay || 0]} at midnight.`
-                        : `Chores will automatically rotate on day ${settings.rotationDay} of each month at midnight.`}
+                        : `Chores will automatically rotate on day ${settings.rotationDay || 1} of each month at midnight.`}
                   </p>
                 </div>
               </motion.div>
@@ -246,7 +246,6 @@ export default function Settings() {
 
             {settings.showWeather && (
               <div className="mt-3 space-y-4">
-                {/* Weather API Key */}
                 <div className="mb-4 bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-100 dark:border-blue-800/30">
                   <div className="flex justify-between items-start">
                     <div className="flex items-start">
@@ -286,32 +285,16 @@ export default function Settings() {
                       className="text-sm text-blue-600 dark:text-blue-400 bg-white/50 dark:bg-blue-900/30 p-3 rounded-lg mb-3 mt-2"
                     >
                       <ol className="list-decimal pl-5 space-y-1">
-                        <li>
-                          Visit{' '}
-                          <a
-                            href="https://openweathermap.org/api"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:underline flex items-center"
-                          >
-                            OpenWeatherMap.org <ExternalLink size={12} className="inline ml-1" />
-                          </a>
-                        </li>
+                        <li>Visit <a href="https://openweathermap.org/api" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center">OpenWeatherMap.org <ExternalLink size={12} className="inline ml-1" /></a></li>
                         <li>Sign up for a free account</li>
                         <li>Once registered, go to the "API Keys" tab in your account</li>
                         <li>Copy your default API key or create a new one</li>
                         <li>Paste it in the field below</li>
-                        <li className="font-bold text-blue-700 dark:text-blue-300">
-                          Important: New API keys may take up to 2 hours to activate
-                        </li>
+                        <li className="font-bold text-blue-700 dark:text-blue-300">Important: New API keys may take up to 2 hours to activate</li>
                       </ol>
-                      <p className="mt-2 text-xs text-blue-500">
-                        The free tier allows up to 1,000 API calls per day, which is more than
-                        enough for personal use.
-                      </p>
+                      <p className="mt-2 text-xs text-blue-500">The free tier allows up to 1,000 API calls per day, which is more than enough for personal use.</p>
                       <div className="mt-2 p-2 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800/30 rounded text-xs text-yellow-800 dark:text-yellow-200">
-                        ⚠️ Note: This app requires a valid API key for the weather feature to work.
-                        The key is stored only on your device.
+                        ⚠️ Note: This app requires a valid API key for the weather feature to work. The key is stored only on your device.
                       </div>
                     </motion.div>
                   )}
@@ -328,15 +311,11 @@ export default function Settings() {
                     <button
                       onClick={() => {
                         if (!apiKeyInput.trim()) {
-                          alert(
-                            'Please enter an API key. Weather functionality requires a valid OpenWeatherMap API key.',
-                          );
+                          alert('Please enter an API key. Weather functionality requires a valid OpenWeatherMap API key.');
                           return;
                         }
                         updateSettings({ weatherApiKey: apiKeyInput });
-                        alert(
-                          'API key saved successfully! The weather data will update on the dashboard.',
-                        );
+                        alert('API key saved successfully! The weather data will update on the dashboard.');
                       }}
                       className="absolute right-2 top-1/2 transform -translate-y-1/2 px-2 py-1 bg-blue-100 hover:bg-blue-200 dark:bg-blue-800 dark:hover:bg-blue-700 text-blue-700 dark:text-blue-300 rounded text-xs"
                     >
@@ -345,7 +324,6 @@ export default function Settings() {
                   </div>
                 </div>
 
-                {/* Weather Location */}
                 <div>
                   <label
                     htmlFor="weatherLocation"
@@ -378,27 +356,17 @@ export default function Settings() {
                           setLocationError('Please enter a location');
                           return;
                         }
-
                         setIsValidatingLocation(true);
                         setLocationError(null);
-
                         try {
-                          // Try to fetch weather for this location to validate it
                           await fetchWeather(locationInput, settings.weatherApiKey);
-
-                          // If successful, update the settings
                           updateSettings({
                             weatherLocation: locationInput,
                             weatherLastUpdated: new Date().toISOString(),
                           });
-
-                          // Show success notification
                           alert('Weather location updated successfully!');
-                        } catch (error) {
-                          // If error, show validation error
-                          setLocationError(
-                            'Could not find this location. Please check spelling or try another nearby city.',
-                          );
+                        } catch (error: any) { // Explicitly type error
+                          setLocationError( error.message || 'Could not find this location. Please check spelling or try another nearby city.');
                         } finally {
                           setIsValidatingLocation(false);
                         }
@@ -423,8 +391,7 @@ export default function Settings() {
                     <p className="mt-1 text-sm text-red-500 dark:text-red-400">{locationError}</p>
                   ) : (
                     <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                      Enter a city name or US ZIP code for accurate weather information. Currently
-                      set to:{' '}
+                      Enter a city name or US ZIP code for accurate weather. Currently set to:{' '}
                       <span className="font-medium text-blue-500 dark:text-blue-400">
                         {settings.weatherLocation}
                       </span>
@@ -466,7 +433,7 @@ export default function Settings() {
 
 interface ThemeButtonProps {
   label: string;
-  icon: React.ReactNode;
+  icon: React.ReactNode; // This uses React.ReactNode, so React import is needed if file doesn't have it
   isSelected: boolean;
   onClick: () => void;
 }
