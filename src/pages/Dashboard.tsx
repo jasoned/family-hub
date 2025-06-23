@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { format } from 'date-fns';
-import { useAppContext } from '../context/AppContext';
+import { useAppContext } from "../context";
 import {
   Check,
   Clock,
@@ -18,7 +18,23 @@ import { fetchWeather, WeatherData } from '../services/weatherService';
 export default function Dashboard() {
   const { familyMembers, chores, toggleChoreCompletion, settings, updateSettings } = useAppContext();
   const [today, setToday] = useState(new Date());
-  const [choresByMember, setChoresByMember] = useState<Record<string, any[]>>({});
+  // Removed ChoreCompletion interface as we're using inline type now
+
+  interface ChoreItem {
+    id: string;
+    title: string;
+    frequency: 'daily' | 'weekly' | 'monthly' | 'once';
+    assignedTo: string | string[];
+    daysOfWeek?: number[];
+    dayOfMonth?: number;
+    completed: Record<string, boolean>;
+    timeOfDay?: 'morning' | 'afternoon' | 'evening';
+    isRotating?: boolean;
+    rotationFrequency?: 'daily' | 'weekly' | 'monthly';
+    rotationDay?: number;
+  }
+
+  const [choresByMember, setChoresByMember] = useState<Record<string, ChoreItem[]>>({});
   const [currentWeather, setCurrentWeather] = useState<WeatherData | null>(null);
   const [weatherError, setWeatherError] = useState<string | null>(null);
   const [isLoadingWeather, setIsLoadingWeather] = useState<boolean>(false);
@@ -30,75 +46,185 @@ export default function Dashboard() {
     return () => clearInterval(timer);
   }, []);
 
-  useEffect(() => {
-    if (!settings.showWeather) {
-      setCurrentWeather(null); 
+  // Track the current request to avoid race conditions and unnecessary re-renders
+  const weatherRequestRef = useRef<Promise<void> | null>(null);
+  const retryCountRef = useRef(0);
+  const lastFetchedLocation = useRef<string>('');
+  const isMounted = useRef(true);
+  const lastFetchTime = useRef<number>(0);
+  
+  const MAX_RETRIES = 2;
+  const RETRY_DELAY = 3000; // 3 seconds
+  const REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes for testing, change to 30 * 60 * 1000 for production
+
+  const fetchWeatherWithRetry = useCallback(async (location: string): Promise<void> => {
+    const now = Date.now();
+    const locationKey = location.toLowerCase();
+    
+    // Skip if already fetching this location
+    if (weatherRequestRef.current || !location || !isMounted.current) {
       return;
     }
 
-    const getWeather = async () => {
-      setIsLoadingWeather(true);
-      setWeatherError(null);
-      try {
-        if (!settings.weatherApiKey) {
-          throw new Error('API key is required. Please add your OpenWeatherMap API key in Settings.');
-        }
-        const data = await fetchWeather(settings.weatherLocation, settings.weatherApiKey);
-        setCurrentWeather(data);
-        updateSettings({ weatherLastUpdated: new Date().toISOString() });
-      } catch (error: any) {
-        console.error('Weather fetch failed:', error);
-        setWeatherError(error.message || 'Could not fetch weather data. Please check your settings.');
-        setCurrentWeather(null); 
-      } finally {
-        setIsLoadingWeather(false);
-      }
-    };
+    // Skip if we've fetched this location very recently (within 1 second)
+    if (lastFetchedLocation.current === locationKey && 
+        now - lastFetchTime.current < 1000) {
+      return;
+    }
 
-    getWeather();
-    const weatherRefreshInterval = setInterval(getWeather, 30 * 60 * 1000);
-    return () => clearInterval(weatherRefreshInterval);
-  }, [settings.weatherLocation, settings.showWeather, settings.weatherApiKey, updateSettings]);
+    // Skip if we have fresh data (within refresh interval)
+    const lastUpdated = settings.weatherLastUpdated ? new Date(settings.weatherLastUpdated).getTime() : 0;
+    if (currentWeather?.location.toLowerCase() === locationKey && 
+        now - lastUpdated < REFRESH_INTERVAL / 2) { // Half the refresh interval for safety
+      return;
+    }
+
+    console.log('Fetching weather for location:', location);
+    setIsLoadingWeather(true);
+    setWeatherError(null);
+    weatherRequestRef.current = (async (): Promise<void> => {
+      try {
+        const data = await fetchWeather(location);
+        
+        if (!isMounted.current) return;
+        
+        lastFetchedLocation.current = locationKey;
+        lastFetchTime.current = now;
+        
+        setCurrentWeather(data);
+        
+        // Only update settings if the location has actually changed
+        if (settings.weatherLocation !== location) {
+          updateSettings({
+            weatherLastUpdated: new Date().toISOString(),
+            weatherLocation: location
+          });
+        } else {
+          // Still update the timestamp
+          updateSettings({
+            weatherLastUpdated: new Date().toISOString()
+          });
+        }
+        
+        retryCountRef.current = 0;
+      } catch (error: any) {
+        if (!isMounted.current) return;
+        
+        console.error('Weather fetch failed:', error);
+        
+        if (retryCountRef.current < MAX_RETRIES) {
+          retryCountRef.current += 1;
+          console.log(`Retrying (${retryCountRef.current}/${MAX_RETRIES})...`);
+          await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * retryCountRef.current));
+          if (isMounted.current) {
+            return fetchWeatherWithRetry(location);
+          }
+          return;
+        }
+        
+        setWeatherError(error.message || 'Could not fetch weather data');
+        setCurrentWeather(null);
+        retryCountRef.current = 0;
+      } finally {
+        if (isMounted.current) {
+          weatherRequestRef.current = null;
+          setIsLoadingWeather(false);
+        }
+      }
+    })();
+    
+    return weatherRequestRef.current;
+  }, [updateSettings, settings.weatherLastUpdated, settings.weatherLocation, currentWeather?.location]);
+
+  // Effect to handle weather data fetching
+  useEffect(() => {
+    isMounted.current = true;
+    
+    if (!settings.showWeather) {
+      setCurrentWeather(null);
+      return;
+    }
+
+    // Use default location if not set
+    const location = settings.weatherLocation || 'New York, NY';
+    
+    // Initial fetch
+    const fetchInitialWeather = async () => {
+      await fetchWeatherWithRetry(location);
+    };
+    
+    fetchInitialWeather();
+    
+    // Set up refresh interval
+    const weatherRefreshInterval = setInterval(() => {
+      if (isMounted.current) {
+        fetchWeatherWithRetry(location);
+      }
+    }, REFRESH_INTERVAL);
+    
+    // Cleanup
+    return () => {
+      isMounted.current = false;
+      clearInterval(weatherRefreshInterval);
+      weatherRequestRef.current = null;
+    };
+  }, [settings.weatherLocation, settings.showWeather]); // Removed fetchWeatherWithRetry from deps
 
   useEffect(() => {
-    const grouped: Record<string, any[]> = {};
-    const currentDayOfWeek = today.getDay();
+    const currentDayOfWeek = today.getDay(); // 0 (Sunday) to 6 (Saturday)
     const currentDayOfMonth = today.getDate();
-
-    familyMembers.forEach((member) => {
-      grouped[member.id] = chores
+    
+    const grouped = familyMembers.reduce<Record<string, ChoreItem[]>>((acc, member) => {
+      acc[member.id] = chores
         .filter((chore) => {
-          const isAssigned = chore.isRotating 
-            ? chore.assignedTo.length > 0 && chore.assignedTo[0] === member.id
-            : chore.assignedTo.includes(member.id);
-
+          // Handle both string[] and string types for assignedTo
+          const assignedTo = Array.isArray(chore.assignedTo) 
+            ? chore.assignedTo 
+            : typeof chore.assignedTo === 'string' 
+              ? [chore.assignedTo]
+              : [];
+              
+          const isAssigned = assignedTo.includes(member.id);
           if (!isAssigned) return false;
 
+          // Handle once frequency - only show if not completed today
+          if (chore.frequency === 'once') {
+            const todayKey = today.toISOString().split('T')[0];
+            const completionKey = `${member.id}_${todayKey}`;
+            return !chore.completed?.[completionKey];
+          }
+
+          // Handle other frequencies
           switch (chore.frequency) {
-            case 'daily': return true;
-            case 'once': return !chore.completed[member.id]; 
+            case 'daily': 
+              return true;
             case 'weekly': 
               return chore.daysOfWeek?.includes(currentDayOfWeek) ?? false;
             case 'monthly':
               return chore.dayOfMonth === currentDayOfMonth;
-            default: return false;
+            default: 
+              return false;
           }
-        })
-        .map((chore) => ({
-          ...chore,
-          completedByMember: chore.completed[member.id] || false,
-        }));
-    });
+        });
+      return acc;
+    }, {});
     setChoresByMember(grouped);
   }, [chores, familyMembers, today]);
 
-  const getCompletionStats = (memberId: string) => {
+  const getCompletionStats = useCallback((memberId: string) => {
+    const today = new Date().toISOString().split('T')[0];
     const memberChores = choresByMember[memberId] || [];
+    
+    const completed = memberChores.filter(chore => {
+      const completionKey = `${memberId}_${today}`;
+      return chore.completed?.[completionKey] === true;
+    }).length;
+    
     const total = memberChores.length;
-    const completedCount = memberChores.filter((chore) => chore.completedByMember).length;
-    const percentage = total > 0 ? Math.round((completedCount / total) * 100) : 0;
-    return { total, completed: completedCount, percentage };
-  };
+    const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+    
+    return { completed, total, percentage };
+  }, [choresByMember]);
 
   const getTimeOfDayIcon = (timeOfDay?: string) => {
     switch (timeOfDay) {
@@ -199,7 +325,10 @@ export default function Dashboard() {
                 <div className="p-5 flex flex-col flex-grow">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center">
-                      <div className="w-10 h-10 rounded-full mr-3 flex items-center justify-center text-white font-medium shadow-sm" style={{ backgroundColor: member.color }}>
+                      <div 
+                        className="w-10 h-10 rounded-full mr-3 flex items-center justify-center text-white font-medium shadow-sm" 
+                        style={{ backgroundColor: member.color }}
+                      >
                         {member.initial}
                       </div>
                       <h2 className="text-lg font-semibold text-slate-900 dark:text-white" style={{ fontFamily: 'Poppins, sans-serif' }}>
@@ -207,40 +336,59 @@ export default function Dashboard() {
                       </h2>
                     </div>
                     {stats.total > 0 && (
-                      <div className="w-8 h-8 rounded-full bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-xs font-medium text-indigo-600 dark:text-indigo-300" title={`${stats.completed}/${stats.total} chores done`}>
+                      <div 
+                        className="w-8 h-8 rounded-full bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-xs font-medium text-indigo-600 dark:text-indigo-300" 
+                        title={`${stats.completed}/${stats.total} chores done`}
+                      >
                         {stats.percentage}%
                       </div>
                     )}
                   </div>
 
-                  {memberChoresToday.length > 0 ? (
+                  {stats.total > 0 ? (
                     <div className="space-y-2.5 flex-grow">
-                      {memberChoresToday.map((chore) => (
-                        <motion.div key={chore.id} whileHover={{ x: 3 }}
-                          className={`flex items-start px-3 py-2.5 rounded-lg ${chore.completedByMember ? 'bg-green-50 dark:bg-green-900/20 opacity-75' : 'bg-gray-50 dark:bg-slate-800/50 hover:bg-gray-100 dark:hover:bg-slate-800'} transition-colors`}
-                        >
-                          <div className="flex-shrink-0 mt-0.5">
-                            <input
-                              type="checkbox"
-                              checked={chore.completedByMember}
-                              onChange={() => toggleChoreCompletion(chore.id, member.id)}
-                              className="h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-gray-300 dark:border-slate-600 rounded"
-                            />
-                          </div>
-                          <div className="ml-3 flex-1">
-                            <div className={`font-medium flex items-center ${chore.completedByMember ? 'line-through text-slate-500 dark:text-slate-400' : 'text-slate-900 dark:text-white'}`}>
-                              {chore.title}
-                              {chore.completedByMember && <Check size={14} className="ml-1.5 text-green-500" />}
+                      {memberChoresToday.map((chore) => {
+                        const todayKey = new Date().toISOString().split('T')[0];
+                        const completionKey = `${member.id}_${todayKey}`;
+                        const isCompleted = chore.completed?.[completionKey] === true;
+                        
+                        return (
+                          <motion.div 
+                            key={chore.id} 
+                            whileHover={{ x: 3 }}
+                            className={`flex items-start px-3 py-2.5 rounded-lg ${
+                              isCompleted 
+                                ? 'bg-green-50 dark:bg-green-900/20 opacity-75' 
+                                : 'bg-gray-50 dark:bg-slate-800/50 hover:bg-gray-100 dark:hover:bg-slate-800'
+                            } transition-colors`}
+                          >
+                            <div className="flex-shrink-0 mt-0.5">
+                              <input
+                                type="checkbox"
+                                checked={isCompleted}
+                                onChange={() => toggleChoreCompletion(chore.id, member.id)}
+                                className="h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-gray-300 dark:border-slate-600 rounded"
+                              />
                             </div>
-                            {chore.timeOfDay && (
-                              <div className="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center">
-                                {getTimeOfDayIcon(chore.timeOfDay)}
-                                <span className="ml-1 capitalize">{chore.timeOfDay}</span>
+                            <div className="ml-3 flex-1">
+                              <div className={`font-medium flex items-center ${
+                                isCompleted 
+                                  ? 'line-through text-slate-500 dark:text-slate-400' 
+                                  : 'text-slate-900 dark:text-white'
+                              }`}>
+                                {chore.title}
+                                {isCompleted && <Check size={14} className="ml-1.5 text-green-500" />}
                               </div>
-                            )}
-                          </div>
-                        </motion.div>
-                      ))}
+                              {chore.timeOfDay && (
+                                <div className="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center">
+                                  {getTimeOfDayIcon(chore.timeOfDay)}
+                                  <span className="ml-1 capitalize">{chore.timeOfDay}</span>
+                                </div>
+                              )}
+                            </div>
+                          </motion.div>
+                        );
+                      })}
                     </div>
                   ) : (
                     <div className="text-slate-500 dark:text-slate-400 text-center py-4 bg-gray-50 dark:bg-slate-800/30 rounded-lg flex-grow flex flex-col items-center justify-center">

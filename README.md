@@ -19,6 +19,25 @@
 - **State Management**: Context API
 - **Optional**: Hosted on Raspberry Pi or cloud platform
 
+## 🔑 Environment Variables
+
+Create a `.env` file in the project root with the following variables:
+
+```bash
+# Required for weather features
+VITE_WEATHER_API_KEY=your_openweathermap_api_key
+
+# Optional: Supabase configuration (if using Supabase backend)
+# VITE_SUPABASE_URL=your_supabase_url
+# VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
+
+### Obtaining a Weather API Key
+
+1. Sign up at [OpenWeatherMap](https://openweathermap.org/)
+2. Get your API key from the dashboard
+3. Add it to your `.env` file as `VITE_WEATHER_API_KEY`
+
 ## 🚀 Getting Started
 
 ### 1. Clone the Repo

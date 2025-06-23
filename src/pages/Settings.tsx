@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { useAppContext } from '../context/AppContext';
-import { CloudRain, ExternalLink, Info, Key, Moon, RotateCcw, Search, Sun } from 'lucide-react';
+import { useAppContext } from "../context";
+import { CloudRain, Moon, RotateCcw, Search, Sun } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { fetchWeather } from '../services/weatherService';
 
@@ -10,9 +10,6 @@ export default function Settings() {
   const [locationInput, setLocationInput] = useState(settings.weatherLocation || '');
   const [isValidatingLocation, setIsValidatingLocation] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
-  const [apiKeyInput, setApiKeyInput] = useState(settings.weatherApiKey || '');
-  const [isApiKeyVisible, setIsApiKeyVisible] = useState(false);
-  const [showApiKeyInfo, setShowApiKeyInfo] = useState(false);
 
   return (
     <div className="p-6 md:p-8">
@@ -247,80 +244,15 @@ export default function Settings() {
             {settings.showWeather && (
               <div className="mt-3 space-y-4">
                 <div className="mb-4 bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-100 dark:border-blue-800/30">
-                  <div className="flex justify-between items-start">
-                    <div className="flex items-start">
-                      <Key className="text-blue-500 mr-2 mt-0.5 flex-shrink-0" size={18} />
-                      <div>
-                        <label
-                          htmlFor="weatherApiKey"
-                          className="block text-sm font-medium text-blue-700 dark:text-blue-300 mb-1"
-                        >
-                          OpenWeatherMap API Key
-                        </label>
-                        <div className="text-xs text-blue-600 dark:text-blue-400 mb-2 flex items-center">
-                          <button
-                            onClick={() => setShowApiKeyInfo(!showApiKeyInfo)}
-                            className="inline-flex items-center hover:underline"
-                            aria-expanded={showApiKeyInfo}
-                          >
-                            <Info size={14} className="mr-1" />
-                            How to get an API key
-                          </button>
-                        </div>
-                      </div>
+                  <div className="flex items-start">
+                    <div className="flex-1">
+                      <p className="text-sm text-blue-700 dark:text-blue-300 mb-2">
+                        Weather data is now configured via environment variables. The API key is managed in the <code className="bg-blue-100 dark:bg-blue-900/50 px-1.5 py-0.5 rounded">.env</code> file.
+                      </p>
+                      <p className="text-xs text-blue-600 dark:text-blue-400">
+                        Update the <code className="bg-blue-100 dark:bg-blue-900/50 px-1 py-0.5 rounded">VITE_OPENWEATHER_API_KEY</code> in your <code className="bg-blue-100 dark:bg-blue-900/50 px-1 py-0.5 rounded">.env</code> file to change the API key.
+                      </p>
                     </div>
-                    <button
-                      onClick={() => setIsApiKeyVisible(!isApiKeyVisible)}
-                      className="text-xs text-blue-500 hover:text-blue-700 dark:hover:text-blue-300"
-                    >
-                      {isApiKeyVisible ? 'Hide' : 'Show'}
-                    </button>
-                  </div>
-
-                  {showApiKeyInfo && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="text-sm text-blue-600 dark:text-blue-400 bg-white/50 dark:bg-blue-900/30 p-3 rounded-lg mb-3 mt-2"
-                    >
-                      <ol className="list-decimal pl-5 space-y-1">
-                        <li>Visit <a href="https://openweathermap.org/api" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center">OpenWeatherMap.org <ExternalLink size={12} className="inline ml-1" /></a></li>
-                        <li>Sign up for a free account</li>
-                        <li>Once registered, go to the "API Keys" tab in your account</li>
-                        <li>Copy your default API key or create a new one</li>
-                        <li>Paste it in the field below</li>
-                        <li className="font-bold text-blue-700 dark:text-blue-300">Important: New API keys may take up to 2 hours to activate</li>
-                      </ol>
-                      <p className="mt-2 text-xs text-blue-500">The free tier allows up to 1,000 API calls per day, which is more than enough for personal use.</p>
-                      <div className="mt-2 p-2 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800/30 rounded text-xs text-yellow-800 dark:text-yellow-200">
-                        ⚠️ Note: This app requires a valid API key for the weather feature to work. The key is stored only on your device.
-                      </div>
-                    </motion.div>
-                  )}
-
-                  <div className="relative">
-                    <input
-                      type={isApiKeyVisible ? 'text' : 'password'}
-                      id="weatherApiKey"
-                      value={apiKeyInput}
-                      onChange={(e) => setApiKeyInput(e.target.value)}
-                      placeholder="Enter your OpenWeatherMap API key"
-                      className="w-full px-3 py-2 border border-blue-200 dark:border-blue-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 font-mono text-sm"
-                    />
-                    <button
-                      onClick={() => {
-                        if (!apiKeyInput.trim()) {
-                          alert('Please enter an API key. Weather functionality requires a valid OpenWeatherMap API key.');
-                          return;
-                        }
-                        updateSettings({ weatherApiKey: apiKeyInput });
-                        alert('API key saved successfully! The weather data will update on the dashboard.');
-                      }}
-                      className="absolute right-2 top-1/2 transform -translate-y-1/2 px-2 py-1 bg-blue-100 hover:bg-blue-200 dark:bg-blue-800 dark:hover:bg-blue-700 text-blue-700 dark:text-blue-300 rounded text-xs"
-                    >
-                      Save Key
-                    </button>
                   </div>
                 </div>
 
@@ -359,7 +291,7 @@ export default function Settings() {
                         setIsValidatingLocation(true);
                         setLocationError(null);
                         try {
-                          await fetchWeather(locationInput, settings.weatherApiKey);
+                          await fetchWeather(locationInput);
                           updateSettings({
                             weatherLocation: locationInput,
                             weatherLastUpdated: new Date().toISOString(),

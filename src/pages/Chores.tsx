@@ -2,7 +2,7 @@
    src/pages/Chores.tsx
 ----------------------------------------------------------------- */
 import { useState } from 'react';
-import { useAppContext } from '../context/AppContext';
+import { useAppContext } from "../context";
 
 import ChoreForm from '../components/ChoreForm';
 import ChoreRow  from '../components/ChoreRow';

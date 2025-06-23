@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useAppContext } from '../context/AppContext';
+import { useAppContext } from "../context";
 import FamilyMemberForm from '../components/FamilyMemberForm';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 

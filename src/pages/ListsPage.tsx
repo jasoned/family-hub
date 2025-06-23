@@ -1,5 +1,5 @@
 import React, { useState } from 'react'; // Keep React for useState
-import { useAppContext } from '../context/AppContext';
+import { useAppContext } from "../context";
 // Removed Save, Check
 import { List as ListIcon, Plus, Trash2, Edit3, CheckSquare, Square, X } from 'lucide-react'; 
 import { motion, AnimatePresence } from 'framer-motion';
