@@ -13,9 +13,14 @@ import {
   X,
   LogOut,
 } from 'lucide-react';
-import { useAppContext } from './context/AppContext';
+import { useAppContext } from './context';
 import { AnimatePresence, motion } from 'framer-motion';
 import './index.css';
+
+// Import DevTools in development only
+const DevTools = process.env.NODE_ENV === 'development' 
+  ? React.lazy(() => import('./components/DevTools')) 
+  : () => null;
 
 // Pages
 import Dashboard from './pages/Dashboard';
@@ -31,6 +36,11 @@ const MealsPage = () => <div className="p-8">Meals Page (Coming Soon)</div>;
 function ProtectedRoute({ children }: { children: JSX.Element }) {
   const { user, authLoading } = useAppContext();
   const location = useLocation();
+
+  // Bypass auth loading and user check in development
+  if (process.env.NODE_ENV === 'development') {
+    return children;
+  }
 
   if (authLoading) {
     return (
@@ -228,9 +238,12 @@ export default function App() {
             </AnimatePresence>
         </main>
       </div>
+      <React.Suspense fallback={null}>
+        <DevTools />
+      </React.Suspense>
     </div>
   );
-}
+};
 
 interface NavLinkProps {
   to: string;

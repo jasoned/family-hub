@@ -1,6 +1,6 @@
 import { useEffect } from 'react'; // MODIFIED: Removed React default import
 import { useNavigate } from 'react-router-dom';
-import { useAppContext } from '../context/AppContext';
+import { useAppContext } from "../context";
 // REMOVED: import { LogIn } from 'lucide-react'; 
 
 // You can replace this with a proper Google SVG icon if you have one
