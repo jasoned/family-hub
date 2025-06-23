@@ -4,8 +4,8 @@ import { mochaPlugins } from '@getmocha/vite-plugins';
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  base: '/fam-hub/', // <-- Make sure this line is added
-  plugins: [...mochaPlugins(process.env), react()],
+  base: process.env.NODE_ENV === 'production' ? '/fam-hub/' : '/',
+  plugins: [...mochaPlugins(process.env as Record<string, string>), react()],
   server: {
     allowedHosts: true,
   },
