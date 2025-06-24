@@ -57,6 +57,7 @@ interface MockAppContextType {
   updateChore: (id: string, c: Partial<Chore>) => Promise<void>;
   removeChore: (id: string) => Promise<void>;
   toggleChoreCompletion: (choreId: string, memberId: string) => Promise<void>;
+  toggleSubChoreCompletion: (choreId: string, subChoreId: string, currentStatus: boolean) => Promise<void>;
   addCalendarEvent: (e: Omit<CalendarEvent, 'id'>) => Promise<void>;
   updateCalendarEvent: (id: string, e: Partial<CalendarEvent>) => Promise<void>;
   removeCalendarEvent: (id: string) => Promise<void>;
@@ -161,19 +162,39 @@ export const MockAppProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const toggleChoreCompletion = async (choreId: string, memberId: string) => {
-    const chore = chores.find(c => c.id === choreId);
-    if (!chore) return;
-    
-    const today = new Date().toISOString().split('T')[0]; // Get YYYY-MM-DD format
-    const completionKey = `${memberId}_${today}`;
-    const isCompleted = !!chore.completed?.[completionKey];
-    
-    const updatedCompleted = {
-      ...chore.completed,
-      [completionKey]: !isCompleted
-    };
-    
-    await updateChore(choreId, { completed: updatedCompleted });
+    setChores(prevChores => 
+      prevChores.map(chore => 
+        chore.id === choreId 
+          ? { 
+              ...chore, 
+              completed: { ...chore.completed, [memberId]: !chore.completed[memberId] } 
+            } 
+          : chore
+      )
+    );
+  };
+
+  const toggleSubChoreCompletion = async (choreId: string, subChoreId: string, currentStatus: boolean) => {
+    setChores(prevChores => 
+      prevChores.map(chore => {
+        if (chore.id === choreId && chore.subChores) {
+          const updatedSubChores = chore.subChores.map(subChore => 
+            subChore.id === subChoreId 
+              ? { ...subChore, completed: !currentStatus }
+              : subChore
+          );
+          
+          const allSubChoresCompleted = updatedSubChores.every(sc => sc.completed);
+          
+          return {
+            ...chore,
+            subChores: updatedSubChores,
+            completed: { ...chore.completed, [choreId]: allSubChoresCompleted }
+          };
+        }
+        return chore;
+      })
+    );
   };
 
   // Calendar Events
@@ -309,6 +330,7 @@ export const MockAppProvider = ({ children }: { children: ReactNode }) => {
         updateListItem,
         removeListItem,
         toggleListItemCompletion,
+        toggleSubChoreCompletion,
         updateSettings,
         updateCalendarSettings,
       }}

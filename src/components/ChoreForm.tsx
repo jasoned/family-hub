@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Chore, FamilyMember } from '../types';
+import { Chore, FamilyMember, SubChore } from '../types';
 import { GripVertical, X } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import SubChoreManager from './SubChoreManager';
 import {
   DndContext,
   closestCenter,
@@ -62,11 +63,21 @@ export default function ChoreForm({
 
   const [daysOfWeek, setDaysOfWeek] = useState<number[]>(chore?.daysOfWeek || []);
   const [dayOfMonth, setDayOfMonth] = useState<number | undefined>(chore?.dayOfMonth);
+  const [showSubChores, setShowSubChores] = useState(true);
+  const [subChores, setSubChores] = useState<SubChore[]>(chore?.subChores || []);
+
+  const handleAssignToggle = (memberId: string) => {
+    setAssignedTo((prev) =>
+      prev.includes(memberId)
+        ? prev.filter((id) => id !== memberId)
+        : [...prev, memberId]
+    );
+  };
 
   /* ------------------------------ dnd-kit ------------------------------ */
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
   const handleDragEnd = (e: DragEndEvent) => {
@@ -81,9 +92,6 @@ export default function ChoreForm({
   };
 
   /* --------------------------- small helpers --------------------------- */
-  const toggleAssignee = (id: string) =>
-    setAssignedTo((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
-
   const toggleDayOfWeek = (d: number) =>
     setDaysOfWeek((prev) => (prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d]));
 
@@ -92,31 +100,73 @@ export default function ChoreForm({
   /* --------------------------- handle submit --------------------------- */
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || assignedTo.length === 0) return;
-    if (frequency === 'weekly' && daysOfWeek.length === 0) return;
-    if (frequency === 'monthly' && !dayOfMonth) return;
+    
+    // Validate form
+    if (!title.trim()) {
+      console.error('Title is required');
+      return;
+    }
+    
+    if (assignedTo.length === 0) {
+      console.error('At least one family member must be assigned');
+      return;
+    }
+    
+    if (frequency === 'weekly' && daysOfWeek.length === 0) {
+      console.error('At least one day of the week must be selected');
+      return;
+    }
+    
+    if (frequency === 'monthly' && !dayOfMonth) {
+      console.error('Day of month is required');
+      return;
+    }
 
-    /* if rotating, ensure a default day is chosen */
-    if (isRotating && rotationFrequency === 'weekly' && rotationDay === undefined) setRotationDay(0);
-    if (isRotating && rotationFrequency === 'monthly' && rotationDay === undefined) setRotationDay(1);
+    // If rotating, ensure a default day is chosen
+    let finalRotationDay = rotationDay;
+    if (isRotating) {
+      if (rotationFrequency === 'weekly' && rotationDay === undefined) {
+        finalRotationDay = 0;
+        setRotationDay(0);
+      } else if (rotationFrequency === 'monthly' && rotationDay === undefined) {
+        finalRotationDay = 1;
+        setRotationDay(1);
+      }
+    }
 
-    /* 🔑 build fresh completed map */
+    // Build completed status map
     const completed: Record<string, boolean> = {};
     assignedTo.forEach((id) => (completed[id] = false));
 
-    onSubmit({
+    // Update parent chore completion if all sub-chores are completed
+    const allSubChoresCompleted = subChores.length > 0 && subChores.every(sc => sc.completed);
+    if (allSubChoresCompleted) {
+      Object.keys(completed).forEach(key => {
+        completed[key] = true;
+      });
+    }
+
+    // Prepare the chore data
+    const choreData: Omit<Chore, 'id'> = {
       title: title.trim(),
       description: description.trim() || undefined,
-      assignedTo,
-      completed, // <-- HERE
+      assignedTo: [...assignedTo], // Create a new array to avoid reference issues
+      completed,
       isRotating,
       frequency,
       rotationFrequency: isRotating ? rotationFrequency : undefined,
-      rotationDay: isRotating && rotationFrequency !== 'daily' ? rotationDay : undefined,
+      rotationDay: isRotating && rotationFrequency !== 'daily' ? finalRotationDay : undefined,
       timeOfDay,
-      daysOfWeek: frequency === 'weekly' ? daysOfWeek : undefined,
+      daysOfWeek: frequency === 'weekly' ? [...daysOfWeek] : undefined, // New array to avoid reference
       dayOfMonth: frequency === 'monthly' ? dayOfMonth : undefined,
-    });
+      subChores: subChores.length > 0 ? [...subChores] : undefined, // New array to avoid reference
+    };
+
+    try {
+      onSubmit(choreData);
+    } catch (error) {
+      console.error('Error saving chore:', error);
+    }
   };
 
   /* ------------------------------- JSX ---------------------------------- */
@@ -141,70 +191,115 @@ export default function ChoreForm({
       </div>
 
       {/* ────────────────── form ────────────────── */}
-      <form onSubmit={handleSubmit}>
-        {/* title ------------------------------------------------------------ */}
-        <div className="mb-5">
-          <label htmlFor="title" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-            Title
-          </label>
-          <input
-            id="title"
-            className="input"
-            required
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-          />
-        </div>
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -20 }}
+        className="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-6 max-w-2xl mx-auto w-full"
+      >
+        <form onSubmit={handleSubmit} className="max-h-[80vh] overflow-y-auto pr-2 -mr-2">
+          <div className="space-y-5">
+            {/* Title and Description */}
+            <div className="space-y-5">
+            <div>
+              <label htmlFor="title" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                Title *
+              </label>
+              <input
+                id="title"
+                className="w-full px-4 py-2.5 border border-gray-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:bg-slate-800"
+                required
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Enter chore title"
+              />
+            </div>
 
-        {/* description ------------------------------------------------------ */}
-        <div className="mb-5">
-          <label htmlFor="description" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-            Description (optional)
-          </label>
-          <textarea
-            id="description"
-            rows={2}
-            className="w-full px-4 py-2.5 border border-gray-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:bg-slate-800"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-          />
-        </div>
+            <div>
+              <label htmlFor="description" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                Description
+              </label>
+              <textarea
+                id="description"
+                className="w-full px-4 py-2.5 border border-gray-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:bg-slate-800"
+                rows={3}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Add details about this chore (optional)"
+              />
+            </div>
 
-        {/* assign to -------------------------------------------------------- */}
-        <div className="mb-5">
-          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-            Assign&nbsp;To
-          </label>
-          {familyMembers.length === 0 ? (
-            <p className="text-sm text-red-500">Please add family members first</p>
-          ) : (
-            <div className="space-y-2 bg-gray-50 dark:bg-slate-800/50 p-3 rounded-xl">
-              {familyMembers.map((m) => (
-                <div key={m.id} className="flex items-center">
+            {/* Sub-tasks section */}
+            <div className="border-t border-gray-200 dark:border-slate-700 pt-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Sub-tasks (Optional)
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setShowSubChores(!showSubChores)}
+                  className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
+                >
+                  {showSubChores ? 'Hide' : 'Show'}
+                </button>
+              </div>
+              
+              <AnimatePresence>
+                {showSubChores && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="overflow-hidden"
+                  >
+                    <SubChoreManager
+                      subChores={subChores}
+                      familyMembers={familyMembers}
+                      onSubChoresChange={setSubChores}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+            </div>
+
+            {/* Assigned To */}
+            <div className="border-t border-gray-200 dark:border-slate-700 pt-4">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">
+              Assign To *
+            </label>
+            <div className="space-y-2">
+              {familyMembers.map((member) => (
+                <div key={member.id} className="flex items-center">
                   <input
                     type="checkbox"
-                    id={`member-${m.id}`}
-                    checked={assignedTo.includes(m.id)}
-                    onChange={() => toggleAssignee(m.id)}
+                    id={`assign-${member.id}`}
+                    checked={assignedTo.includes(member.id)}
+                    onChange={() => handleAssignToggle(member.id)}
                     className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
                   />
-                  <label htmlFor={`member-${m.id}`} className="ml-2 flex items-center text-sm">
+                  <label
+                    htmlFor={`assign-${member.id}`}
+                    className="ml-2 flex items-center text-sm text-slate-700 dark:text-slate-300"
+                  >
                     <span
                       className="w-6 h-6 rounded-full mr-2 flex items-center justify-center text-white text-xs shadow-sm"
-                      style={{ backgroundColor: m.color }}
+                      style={{ backgroundColor: member.color }}
                     >
-                      {m.initial}
+                      {member.initial}
                     </span>
-                    {m.name}
+                    {member.name}
                   </label>
                 </div>
               ))}
             </div>
-          )}
-        </div>
+          </div>
 
-        {/* rotation --------------------------------------------------------- */}
-        {assignedTo.length > 1 && (
+            </div>
+
+            {/* rotation --------------------------------------------------------- */}
+            {assignedTo.length > 1 && (
           <div className="mb-5 p-3 rounded-xl bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800/30">
             {/* toggle ----------------------------------------------------- */}
             <div className="flex items-center">
@@ -327,7 +422,7 @@ export default function ChoreForm({
                                   key={id}
                                   id={id}
                                   member={m}
-                                  index={idx}
+
                                   isFirst={idx === 0}
                                   isLast={idx === assignedTo.length - 1}
                                 />
@@ -352,100 +447,101 @@ export default function ChoreForm({
           </div>
         )}
 
-        {/* frequency -------------------------------------------------------- */}
-        <div className="mb-5">
-          <label htmlFor="frequency" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-            Frequency
-          </label>
-          <select
-            id="frequency"
-            value={frequency}
-            onChange={(e) => setFrequency(e.target.value as any)}
-            className="w-full px-4 py-2.5 border border-gray-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:bg-slate-800"
-          >
-            <option value="daily">Daily</option>
-            <option value="weekly">Weekly</option>
-            <option value="monthly">Monthly</option>
-            <option value="once">One-time</option>
-          </select>
-        </div>
-
-        {/* weekly days ------------------------------------------------------ */}
-        {frequency === 'weekly' && (
-          <div className="mb-5">
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-              Days of Week
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map((d, i) => (
-                <button
-                  key={d}
-                  type="button"
-                  onClick={() => toggleDayOfWeek(i)}
-                  className={`px-3 py-1.5 text-xs rounded-lg ${
-                    daysOfWeek.includes(i)
-                      ? 'bg-indigo-500 text-white shadow-sm'
-                      : 'bg-gray-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-700'
-                  }`}
-                >
-                  {d}
-                </button>
-              ))}
+            {/* frequency -------------------------------------------------------- */}
+            <div className="mb-5">
+              <label htmlFor="frequency" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                Frequency
+              </label>
+              <select
+                id="frequency"
+                value={frequency}
+                onChange={(e) => setFrequency(e.target.value as any)}
+                className="w-full px-4 py-2.5 border border-gray-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:bg-slate-800"
+              >
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+                <option value="once">One-time</option>
+              </select>
             </div>
-          </div>
-        )}
 
-        {/* monthly day ------------------------------------------------------- */}
-        {frequency === 'monthly' && (
-          <div className="mb-5">
-            <label htmlFor="dayOfMonth" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-              Day of Month
-            </label>
-            <input
-              id="dayOfMonth"
-              type="number"
-              min={1}
-              max={31}
-              value={dayOfMonth ?? ''}
-              onChange={(e) => setDayOfMonth(parseInt(e.target.value, 10))}
-              className="w-full px-4 py-2.5 border border-gray-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:bg-slate-800"
-              required
-            />
-          </div>
-        )}
+            {/* weekly days ------------------------------------------------------ */}
+            {frequency === 'weekly' && (
+              <div className="mb-5">
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                  Days of Week
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map((d, i) => (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => toggleDayOfWeek(i)}
+                      className={`px-3 py-1.5 text-xs rounded-lg ${
+                        daysOfWeek.includes(i)
+                          ? 'bg-indigo-500 text-white shadow-sm'
+                          : 'bg-gray-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-700'
+                      }`}
+                    >
+                      {d}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
-        {/* time of day ------------------------------------------------------ */}
-        <div className="mb-6">
-          <label htmlFor="timeOfDay" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-            Time of Day (optional)
-          </label>
-          <select
-            id="timeOfDay"
-            value={timeOfDay || ''}
-            onChange={(e) => setTimeOfDay(e.target.value as any)}
-            className="w-full px-4 py-2.5 border border-gray-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:bg-slate-800"
-          >
-            <option value="">Any time</option>
-            <option value="morning">Morning</option>
-            <option value="afternoon">Afternoon</option>
-            <option value="evening">Evening</option>
-          </select>
-        </div>
+            {/* monthly day ------------------------------------------------------- */}
+            {frequency === 'monthly' && (
+              <div className="mb-5">
+                <label htmlFor="dayOfMonth" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                  Day of Month
+                </label>
+                <input
+                  id="dayOfMonth"
+                  type="number"
+                  min={1}
+                  max={31}
+                  value={dayOfMonth ?? ''}
+                  onChange={(e) => setDayOfMonth(parseInt(e.target.value, 10))}
+                  className="w-full px-4 py-2.5 border border-gray-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:bg-slate-800"
+                  required
+                />
+              </div>
+            )}
 
-        {/* footer ----------------------------------------------------------- */}
-        <div className="flex justify-end space-x-3">
-          <button type="button" onClick={onCancel} className="btn-secondary">
-            Cancel
-          </button>
-          <button
-            type="submit"
-            className="btn-primary"
-            disabled={familyMembers.length === 0 || assignedTo.length === 0}
-          >
-            {chore ? 'Update' : 'Add'}
-          </button>
-        </div>
-      </form>
+            {/* time of day ------------------------------------------------------ */}
+            <div className="mb-6">
+              <label htmlFor="timeOfDay" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                Time of Day (optional)
+              </label>
+              <select
+                id="timeOfDay"
+                value={timeOfDay || ''}
+                onChange={(e) => setTimeOfDay(e.target.value as any)}
+                className="w-full px-4 py-2.5 border border-gray-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:bg-slate-800"
+              >
+                <option value="">Any time</option>
+                <option value="morning">Morning</option>
+                <option value="afternoon">Afternoon</option>
+                <option value="evening">Evening</option>
+              </select>
+            </div>
+
+            {/* footer ----------------------------------------------------------- */}
+            <div className="flex justify-end space-x-3 mt-6">
+              <button type="button" onClick={onCancel} className="btn-secondary">
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="btn-primary"
+                disabled={familyMembers.length === 0 || assignedTo.length === 0}
+              >
+                {chore ? 'Update' : 'Add'}
+              </button>
+            </div>
+        </form>
+      </motion.div>
     </motion.div>
   );
 }
@@ -456,54 +552,77 @@ export default function ChoreForm({
 interface SortableItemProps {
   id: string;
   member: FamilyMember;
-  index: number;
   isFirst: boolean;
   isLast: boolean;
 }
+
 function SortableItem({ id, member, isFirst, isLast }: SortableItemProps) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id,
-  });
+  try {
+    // Ensure member is defined and has required properties
+    if (!member || typeof member !== 'object') {
+      console.error('Invalid member prop in SortableItem:', member);
+      return null;
+    }
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    zIndex: isDragging ? 10 : 1,
-    opacity: isDragging ? 0.8 : 1,
-  };
+    const {
+      attributes,
+      listeners,
+      setNodeRef,
+      transform,
+      transition,
+      isDragging,
+    } = useSortable({ id });
 
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className={`flex items-center p-2 ${
-        isFirst
-          ? 'bg-green-50 dark:bg-green-900/20 border-l-4 border-green-500'
-          : !isLast
-          ? 'border-b border-indigo-50 dark:border-indigo-800/30'
-          : ''
-      } ${isDragging ? 'shadow-md bg-blue-50 dark:bg-blue-900/20' : ''}`}
-      {...attributes}
-    >
+    // Ensure valid transform and transition
+    const style = {
+      transform: transform ? CSS.Transform.toString(transform) : undefined,
+      transition: transition || undefined,
+      zIndex: isDragging ? 10 : 1,
+      opacity: isDragging ? 0.8 : 1,
+    };
+
+    return (
       <div
-        {...listeners}
-        className="mr-2 text-gray-400 p-1 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700 cursor-grab active:cursor-grabbing"
-        aria-label="Drag to reorder"
+        ref={setNodeRef}
+        style={style}
+        className={`flex items-center p-2 ${
+          isFirst
+            ? 'bg-green-50 dark:bg-green-900/20 border-l-4 border-green-500'
+            : !isLast
+            ? 'border-b border-indigo-50 dark:border-indigo-800/30'
+            : ''
+        } ${isDragging ? 'shadow-md bg-blue-50 dark:bg-blue-900/20' : ''}`}
+        {...attributes}
       >
-        <GripVertical size={16} />
-      </div>
-      <div
-        className="w-6 h-6 rounded-full mr-2 flex items-center justify-center text-white text-xs"
-        style={{ backgroundColor: member.color }}
-      >
-        {member.initial}
-      </div>
-      <span className="text-sm text-slate-700 dark:text-slate-300">{member.name}</span>
-      {isFirst && (
-        <span className="ml-auto text-xs bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-200 px-2 py-0.5 rounded-full">
-          Currently Assigned
+        <button
+          type="button"
+          {...listeners}
+          className="mr-2 text-gray-400 p-1 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700 cursor-grab active:cursor-grabbing focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          aria-label={`Drag to reorder ${member.name || 'item'}`}
+        >
+          <GripVertical size={16} aria-hidden="true" />
+        </button>
+        {member.color && (
+          <div
+            className="w-6 h-6 rounded-full mr-2 flex items-center justify-center text-white text-xs"
+            style={{ backgroundColor: member.color }}
+            aria-hidden="true"
+          >
+            {member.initial || '?'}
+          </div>
+        )}
+        <span className="text-sm text-slate-700 dark:text-slate-300">
+          {member.name || 'Unknown Member'}
         </span>
-      )}
-    </div>
-  );
+        {isFirst && (
+          <span className="ml-auto text-xs bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-200 px-2 py-0.5 rounded-full">
+            Currently Assigned
+          </span>
+        )}
+      </div>
+    );
+  } catch (error) {
+    console.error('Error in SortableItem:', error);
+    return null;
+  }
 }

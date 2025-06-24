@@ -21,12 +21,10 @@ import {
   FamilyMember,
   Chore,
   List,
-  ListItem,
   MealPlan,
   CalendarEvent,
   AppSettings,
   CalendarSettings,
-  CalendarRecurrencePattern,
 } from '../types';
 
 /* -------------------------------------------------------------------------- */
@@ -87,6 +85,7 @@ interface AppContextType {
   updateChore(id: string, c: Partial<Chore>): Promise<void>;
   removeChore(id: string): Promise<void>;
   toggleChoreCompletion(choreId: string, memberId: string): Promise<void>;
+  toggleSubChoreCompletion(choreId: string, subChoreId: string, currentStatus: boolean): Promise<void>;
   rotateChores(): Promise<void>;
 
   addCalendarEvent(e: Omit<CalendarEvent, 'id'>): Promise<void>;
@@ -122,12 +121,32 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
   const [chores, setChores] = useState<Chore[]>([]);
-  const [lists, setLists] = useState<List[]>([]);
-  const [mealPlans, setMealPlans] = useState<MealPlan[]>([]);
-  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
+  // Prefix unused setters with _ to indicate they're intentionally unused
+  const [lists, _setLists] = useState<List[]>([]);
+  const [mealPlans, _setMealPlans] = useState<MealPlan[]>([]);
+  const [calendarEvents, _setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [settings, setSettings] = useState<AppSettings>(defaultSettings);
-  const [calendarSettings, setCalendarSettings] =
-    useState<CalendarSettings>(defaultCalendarSettings);
+  const [calendarSettings, setCalendarSettings] = useState<CalendarSettings>(defaultCalendarSettings);
+  
+  // Helper function to map database family member to app format
+  const famMap = (member: any): FamilyMember => ({
+    ...member,
+    isChild: member.is_child,
+    profilePicture: member.profile_picture
+  });
+
+  // Type-safe wrapper for state setters
+  const setMealPlans = (updater: (prev: MealPlan[]) => MealPlan[]) => {
+    _setMealPlans(updater);
+  };
+
+  const setCalendarEvents = (updater: (prev: CalendarEvent[]) => CalendarEvent[]) => {
+    _setCalendarEvents(updater);
+  };
+
+  const setLists = (updater: (prev: List[]) => List[]) => {
+    _setLists(updater);
+  };
 
   const choresRef = useRef<Chore[]>([]);
   useEffect(() => {
@@ -159,7 +178,58 @@ export function AppProvider({ children }: { children: ReactNode }) {
     // setSession, setUser to null will be handled by onAuthStateChange
   };
 
-  // ... fetchFamilyMembers and all your logic stays the same ...
+  // Data fetching functions
+  const fetchChores = async () => {
+    const { data, error } = await supabase.from('chores').select('*');
+    if (error) {
+      console.error('Error fetching chores:', error);
+      return [];
+    }
+    return data || [];
+  };
+
+  const fetchCalendarEvents = async () => {
+    const { data, error } = await supabase.from('calendar_events').select('*');
+    if (error) {
+      console.error('Error fetching calendar events:', error);
+      return [];
+    }
+    return data || [];
+  };
+
+  const fetchListsAndItems = async () => {
+    const { data, error } = await supabase.from('lists').select('*');
+    if (error) {
+      console.error('Error fetching lists:', error);
+      return [];
+    }
+    return data || [];
+  };
+
+  const fetchMealPlans = async () => {
+    const { data, error } = await supabase.from('meal_plans').select('*');
+    if (error) {
+      console.error('Error fetching meal plans:', error);
+      return [];
+    }
+    return data || [];
+  };
+
+  const rotateOne = async (chore: Chore) => {
+    if (!chore.assignedTo || chore.assignedTo.length === 0) return;
+    
+    const currentIndex = chore.assignedTo.indexOf(chore.assignedTo[0]);
+    const nextIndex = (currentIndex + 1) % chore.assignedTo.length;
+    const rotatedAssignedTo = [
+      chore.assignedTo[nextIndex],
+      ...chore.assignedTo.filter((_, i) => i !== nextIndex)
+    ];
+    
+    await updateChore(chore.id, {
+      assignedTo: rotatedAssignedTo,
+      lastRotated: new Date().toISOString()
+    });
+  };
 
   const fetchFamilyMembers = async () => {
     if (!user && !authLoading) {
@@ -182,9 +252,272 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setFamilyMembers((data || []).map(famMap));
   };
 
-  // ... verifyAndSetupFamilyMember stays the same ...
+  // Auth functions
+  const signInWithGoogle = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+    });
+    if (error) {
+      console.error('Error signing in with Google:', error);
+      throw error;
+    }
+  };
 
-  async function verifyAndSetupFamilyMember(currentUser: User): Promise<boolean> {
+  // Family Member CRUD
+  const addFamilyMember = async (member: Omit<FamilyMember, 'id' | 'profilePicture' | 'isChild'> & { isChild?: boolean; profilePicture?: string }) => {
+    const { data, error } = await supabase
+      .from('family_members')
+      .insert([{
+        ...member,
+        is_child: member.isChild ?? false,
+        profile_picture: member.profilePicture
+      }])
+      .select()
+      .single();
+    if (error) throw error;
+    setFamilyMembers(prev => [...prev, famMap(data)]);
+  };
+
+  const updateFamilyMember = async (id: string, updates: Partial<Omit<FamilyMember, 'id' | 'profilePicture' | 'isChild'> & { isChild?: boolean; profilePicture?: string }>) => {
+    const updateData: any = { ...updates };
+    
+    // Handle isChild to is_child mapping
+    if ('isChild' in updates) {
+      updateData.is_child = updates.isChild;
+      delete updateData.isChild;
+    }
+    
+    // Handle profilePicture to profile_picture mapping
+    if ('profilePicture' in updates) {
+      updateData.profile_picture = updates.profilePicture;
+      delete updateData.profilePicture;
+    }
+    
+    const { data, error } = await supabase
+      .from('family_members')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
+      
+    if (error) throw error;
+    setFamilyMembers(prev => prev.map(m => m.id === id ? famMap(data) : m));
+  };
+
+  const removeFamilyMember = async (id: string) => {
+    const { error } = await supabase
+      .from('family_members')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+    setFamilyMembers(prev => prev.filter(m => m.id !== id));
+  };
+
+  // Chore CRUD
+  const addChore = async (chore: Omit<Chore, 'id' | 'createdBy' | 'completed' | 'lastRotated'>) => {
+    if (!user) throw new Error('User not authenticated');
+    const { data, error } = await supabase
+      .from('chores')
+      .insert([{
+        ...chore,
+        created_by: user.id,
+        completed: {},
+        last_rotated: new Date().toISOString()
+      }])
+      .select()
+      .single();
+    if (error) throw error;
+    setChores(prev => [...prev, data]);
+  };
+
+  const updateChore = async (id: string, updates: Partial<Chore>) => {
+    const { data, error } = await supabase
+      .from('chores')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    setChores(prev => prev.map(c => c.id === id ? data : c));
+  };
+
+  const removeChore = async (id: string) => {
+    const { error } = await supabase
+      .from('chores')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+    setChores(prev => prev.filter(c => c.id !== id));
+  };
+
+  const toggleChoreCompletion = async (choreId: string, memberId: string) => {
+    const chore = chores.find(c => c.id === choreId);
+    if (!chore) return;
+
+    const currentStatus = chore.completed?.[memberId] || false;
+    const newStatus = !currentStatus;
+
+    await updateChore(choreId, {
+      completed: {
+        ...chore.completed,
+        [memberId]: newStatus
+      }
+    });
+  };
+
+  const rotateChores = async () => {
+    // Implementation for rotating chores
+    await Promise.all(chores.map(chore => rotateOne(chore)));
+  };
+
+  // Calendar Event CRUD
+  const addCalendarEvent = async (event: Omit<CalendarEvent, 'id'>) => {
+    const { data, error } = await supabase
+      .from('calendar_events')
+      .insert([event])
+      .select()
+      .single();
+    if (error) throw error;
+    setCalendarEvents(prev => [...prev, data]);
+  };
+
+  const updateCalendarEvent = async (id: string, updates: Partial<CalendarEvent>) => {
+    const { data, error } = await supabase
+      .from('calendar_events')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    setCalendarEvents(prev => prev.map(e => e.id === id ? data : e));
+  };
+
+  const removeCalendarEvent = async (id: string) => {
+    const { error } = await supabase
+      .from('calendar_events')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+    setCalendarEvents(prev => prev.filter(e => e.id !== id));
+  };
+
+  // List CRUD
+  const addList = async (list: { title: string }) => {
+    const { data, error } = await supabase
+      .from('lists')
+      .insert([list])
+      .select()
+      .single();
+    if (error) throw error;
+    setLists(prev => [...prev, data]);
+  };
+
+  const updateList = async (id: string, updates: { title: string }) => {
+    const { data, error } = await supabase
+      .from('lists')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    setLists(prev => prev.map(l => l.id === id ? data : l));
+  };
+
+  const removeList = async (id: string) => {
+    const { error } = await supabase
+      .from('lists')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+    setLists(prev => prev.filter(l => l.id !== id));
+  };
+
+  // List Item CRUD
+  const addListItem = async (listId: string, item: { text: string; position?: number; assignedTo?: string[] }) => {
+    const { error } = await supabase
+      .from('list_items')
+      .insert([{
+        ...item,
+        list_id: listId,
+        position: item.position || 0,
+        assigned_to: item.assignedTo || []
+      }]);
+    if (error) throw error;
+    // Refresh lists to update items
+    const lists = await fetchListsAndItems();
+    setLists(() => lists);
+  };
+
+  const updateListItem = async (itemId: string, updates: { text?: string; completed?: boolean; position?: number; assignedTo?: string[] }) => {
+    const { error } = await supabase
+      .from('list_items')
+      .update({
+        ...updates,
+        assigned_to: updates.assignedTo
+      })
+      .eq('id', itemId);
+    if (error) throw error;
+    // Refresh lists to update items
+    const lists = await fetchListsAndItems();
+    setLists(() => lists);
+  };
+
+  const removeListItem = async (itemId: string) => {
+    const { error } = await supabase
+      .from('list_items')
+      .delete()
+      .eq('id', itemId);
+    if (error) throw error;
+    // Refresh lists to update items
+    const lists = await fetchListsAndItems();
+    setLists(() => lists);
+  };
+
+  const toggleListItemCompletion = async (itemId: string, currentStatus: boolean) => {
+    await updateListItem(itemId, { completed: !currentStatus });
+  };
+
+  // Meal Plan CRUD
+  const addMealPlan = async (plan: Omit<MealPlan, 'id' | 'created_by'>) => {
+    if (!user) throw new Error('User not authenticated');
+    const { data, error } = await supabase
+      .from('meal_plans')
+      .insert([{
+        ...plan,
+        created_by: user.id
+      }])
+      .select()
+      .single();
+    if (error) throw error;
+    setMealPlans(prev => [...prev, data]);
+  };
+
+  const updateMealPlan = async (id: string, updates: Partial<MealPlan>) => {
+    const { data, error } = await supabase
+      .from('meal_plans')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    setMealPlans(prev => prev.map(p => p.id === id ? data : p));
+  };
+
+  const removeMealPlan = async (id: string) => {
+    const { error } = await supabase
+      .from('meal_plans')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+    setMealPlans(prev => prev.filter(p => p.id !== id));
+  };
+
+  // Settings
+  const updateSettings = (updates: Partial<AppSettings>) => {
+    setSettings(prev => ({ ...prev, ...updates }));
+  };
+
+  const verifyAndSetupFamilyMember = async (currentUser: User): Promise<boolean> => {
     if (!currentUser) return false;
     const { id: authUserId, email: authUserEmail } = currentUser;
     if (!authUserEmail) {
@@ -378,16 +711,107 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
   }, [user]);
 
+  // Toggle sub-chore completion and update parent chore status
+  const toggleSubChoreCompletion = async (choreId: string, subChoreId: string, currentStatus: boolean) => {
+    try {
+      setChores(prevChores => {
+        return prevChores.map(chore => {
+          if (chore.id === choreId && chore.subChores) {
+            // Toggle the sub-chore completion status
+            const updatedSubChores = chore.subChores.map(subChore => 
+              subChore.id === subChoreId 
+                ? { ...subChore, completed: !currentStatus }
+                : subChore
+            );
+            
+            // Check if all sub-chores are now completed
+            const allSubChoresCompleted = updatedSubChores.every(sc => sc.completed);
+            
+            // Create a new chore object with updated sub-chores and completion status
+            // Use the chore's existing completed record or create a new one
+            const currentCompleted = typeof chore.completed === 'object' ? chore.completed : {};
+            
+            // Update the completed record based on sub-chores status
+            const updatedCompleted = {
+              ...currentCompleted,
+              [choreId]: allSubChoresCompleted
+            };
+            
+            const updatedChore: Chore = {
+              ...chore,
+              subChores: updatedSubChores,
+              completed: updatedCompleted
+            };
+            
+            return updatedChore;
+          }
+          return chore;
+        });
+      });
+      
+      // Update in Supabase
+      // Get the latest state after the update
+      const updatedChore = chores.find(c => c.id === choreId);
+      if (updatedChore) {
+        const allSubChoresCompleted = updatedChore.subChores?.every(sc => sc.completed) || false;
+        
+        const { error } = await supabase
+          .from('chores')
+          .update({ 
+            sub_chores: updatedChore.subChores || [],
+            // Update the completed status for Supabase
+            completed: allSubChoresCompleted
+          })
+          .eq('id', choreId);
+          
+        if (error) throw error;
+      }
+      
+    } catch (error) {
+      console.error('Error toggling sub-chore completion:', error);
+      throw error;
+    }
+  };
+
+  // Update the context value type to include toggleSubChoreCompletion
   const value: AppContextType = {
-    session, user, authLoading, signInWithGoogle, signOut,
-    familyMembers, chores, lists, mealPlans, calendarEvents, settings, calendarSettings,
-    addFamilyMember, updateFamilyMember, removeFamilyMember,
-    addChore, updateChore, removeChore, toggleChoreCompletion, rotateChores,
-    addCalendarEvent, updateCalendarEvent, removeCalendarEvent,
-    addList, updateList, removeList,
-    addListItem, updateListItem, removeListItem, toggleListItemCompletion,
-    addMealPlan, updateMealPlan, removeMealPlan,
-    updateSettings, updateCalendarSettings: (s) => setCalendarSettings((prev) => ({ ...prev, ...s })),
+    session,
+    user,
+    authLoading,
+    signInWithGoogle,
+    signOut,
+    familyMembers,
+    chores,
+    lists,
+    mealPlans,
+    calendarEvents,
+    settings,
+    calendarSettings,
+    addFamilyMember,
+    updateFamilyMember,
+    removeFamilyMember,
+    addChore,
+    updateChore,
+    removeChore,
+    toggleChoreCompletion,
+    toggleSubChoreCompletion, // Add the new function
+    rotateChores,
+    addCalendarEvent,
+    updateCalendarEvent,
+    removeCalendarEvent,
+    addList,
+    updateList,
+    removeList,
+    addListItem,
+    updateListItem,
+    removeListItem,
+    toggleListItemCompletion,
+    addMealPlan,
+    updateMealPlan,
+    removeMealPlan,
+    updateSettings,
+    updateCalendarSettings: (s: Partial<CalendarSettings>) => 
+      setCalendarSettings((prev) => ({ ...prev, ...s })),
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

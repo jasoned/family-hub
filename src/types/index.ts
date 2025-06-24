@@ -17,6 +17,15 @@ export interface FamilyMember {
   profilePicture?: string;
 }
 
+export interface SubChore {
+  id: string;
+  title: string;
+  completed: boolean;
+  assignedTo: string[];
+  createdAt: string;
+  updatedAt?: string;
+}
+
 export interface Chore {
   id: string;
   title: string;
@@ -32,6 +41,7 @@ export interface Chore {
   completed: Record<string, boolean>;
   lastRotated?: string;
   starValue?: number;
+  subChores?: SubChore[];
 }
 
 export interface ListItem {
